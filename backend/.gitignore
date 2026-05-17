@@ -1,0 +1,5 @@
+# Rust compilation output
+/target/
+
+# Environment variables (Security!)
+.env
