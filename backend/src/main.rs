@@ -3,6 +3,7 @@ use dotenvy::dotenv;
 use sqlx::postgres::PgPoolOptions;
 use std::env;
 
+mod utils;
 mod db;
 mod handlers;
 mod models;

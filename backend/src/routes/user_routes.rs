@@ -7,5 +7,6 @@ pub async fn build_user_routes() -> Router<PgPool>{
     Router::new()
     .route("/register", post(user_handler::register_user))
     .route("/", get(user_handler::get_users))
+    .route("/login", post(user_handler::login_user))
 }
 
