@@ -1,10 +1,10 @@
-use jsonwebtoken::{EncodingKey, Header, encode};
-use serde::Serialize;
+use jsonwebtoken::{EncodingKey, Header, encode, decode, Validation, DecodingKey};
+use serde::{Serialize, Deserialize};
 
-#[derive(Serialize)]
-struct Claims {
-    sub: String,
-    exp: usize,
+#[derive (Serialize, Debug, Deserialize)]
+pub struct Claims {
+    pub sub: String,
+    pub exp: usize,
 }
 
 pub fn generate_token(user_id: &str) -> Result<String, String> {
@@ -28,4 +28,17 @@ pub fn generate_token(user_id: &str) -> Result<String, String> {
         &EncodingKey::from_secret(token_secret.as_ref()),
     )
     .map_err(|e| e.to_string())
+}
+
+pub fn verify_token(token: &str) -> Result<Claims, String> {
+    
+    let token_secrat = "my_super_secret_key_123" ;
+    let token_data= decode::<Claims>(
+        token,
+        &DecodingKey::from_secret(token_secrat.as_ref()),
+        &Validation::default(),
+    )
+    .map_err(|e| e.to_string())?;
+    
+    Ok(token_data.claims)
 }

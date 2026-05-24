@@ -1,4 +1,5 @@
 use axum::{Router};
+use axum::routing::get;
 use dotenvy::dotenv;
 use sqlx::postgres::PgPoolOptions;
 use std::env;
@@ -29,6 +30,7 @@ async fn main() {
     let app = Router::new()
         .route("/", axum::routing::get(|| async {"Hello from the Rust Backend!"}))
         .nest("/api/users", crate::routes::user_routes::build_user_routes().await)
+        .route("/ws", get(crate::handlers::chat_handler::ws_handler))
         .with_state(pool);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000")
