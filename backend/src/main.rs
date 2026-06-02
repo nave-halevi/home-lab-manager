@@ -1,8 +1,9 @@
 use axum::{Router};
-use axum::routing::get;
 use dotenvy::dotenv;
 use sqlx::postgres::PgPoolOptions;
 use std::env;
+
+// use crate::routes;
 
 mod utils;
 mod db;
@@ -14,7 +15,7 @@ mod services;
 
 #[tokio::main]
 async fn main() {
-
+    
     dotenv().ok();
 
     let database_url = env::var("DATABASE_URL")
@@ -28,9 +29,7 @@ async fn main() {
     println!("✅ Successfully connected to PostgreSQL!");
 
     let app = Router::new()
-        .route("/", axum::routing::get(|| async {"Hello from the Rust Backend!"}))
-        .nest("/api/users", crate::routes::user_routes::build_user_routes().await)
-        .route("/ws", get(crate::handlers::chat_handler::ws_handler))
+        .nest("/api", routes::create_api_router())
         .with_state(pool);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000")
@@ -39,5 +38,4 @@ async fn main() {
     println!("🚀 Server is running on http://localhost:3000");
 
     axum::serve(listener, app).await.unwrap();
-
 }
