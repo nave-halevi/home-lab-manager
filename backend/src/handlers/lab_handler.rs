@@ -1,7 +1,5 @@
 use axum::{extract::State, Json, http::StatusCode};
-use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
-use uuid::Uuid;
 
 use crate::models::lab_models::{CreateLabRequest, CreateLabResponse, DeleteLabRequest, DeleteLabResponse};
 use crate::services::lab_service;

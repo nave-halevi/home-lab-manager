@@ -3,8 +3,6 @@ use dotenvy::dotenv;
 use sqlx::postgres::PgPoolOptions;
 use std::env;
 
-// use crate::routes;
-
 mod utils;
 mod db;
 mod handlers;

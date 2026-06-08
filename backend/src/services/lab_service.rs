@@ -31,7 +31,8 @@ pub async fn create_user_lab(
     
 
     let is_created = task::spawn_blocking(move || {
-        let base_vm = "kali-linux";
+        const BASE_VM: &str = "kali-linux";
+        let base_vm = BASE_VM;
         if virtualbox_manager::clone_vm(base_vm, &vm_name_clone) {
             virtualbox_manager::start_vm(&vm_name_clone, host_ssh_port)
         } else{
@@ -50,6 +51,7 @@ pub async fn create_user_lab(
 
     sqlx::query!("UPDATE environments SET status = 'Running' WHERE id = $1", env_id)
         .execute(pool).await.ok();
+
     Ok((env_id ,host_ssh_port))
 }
 
