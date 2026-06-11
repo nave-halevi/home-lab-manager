@@ -10,5 +10,5 @@ pub fn create_api_router() -> Router<PgPool> {
     Router::new()
     .nest("/auth", auth::router())    
     .nest("/users", user_routes::router())    
-    .nest("/labs", lab_routes::router())
+    .nest("/lab", lab_routes::router())
 }

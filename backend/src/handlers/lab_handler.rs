@@ -10,6 +10,7 @@ pub async fn handle_create_lab(
     Json(payload): Json<CreateLabRequest>,
 ) -> (StatusCode, Json<CreateLabResponse>) {
 
+
     match lab_service::create_user_lab(&pool,payload.user_id, payload.scenario_id).await {
         Ok((env_id, port)) =>{
             (StatusCode::CREATED, Json(CreateLabResponse{
@@ -19,6 +20,7 @@ pub async fn handle_create_lab(
             }))
         }
         Err(err) => {
+            eprintln!("[ERROR] Failed to create lab in handler: {}", err);
             (StatusCode::INTERNAL_SERVER_ERROR, Json(CreateLabResponse{
                 message: err,
                 ssh_port: None,
