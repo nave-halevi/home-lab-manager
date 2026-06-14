@@ -1,4 +1,5 @@
 import React from "react";
+import TerminalWrapper from "./TerminalWrapper";
 
 const LabList = ({ activeLab }) => {
   if (!activeLab) {
@@ -27,18 +28,16 @@ const LabList = ({ activeLab }) => {
       <div
         style={{
           marginTop: "20px",
-          height: "300px",
-          backgroundColor: "#1e1e1e",
-          color: "#fff",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontFamily: "monospace",
+          height: "400px",
+          backgroundColor: "#0f141c",
+          borderRadius: "6px",
+          overflow: "hidden",
         }}
       >
-        [Terminal will be injected here in the next step]
+        <TerminalWrapper activeLab={activeLab} />
       </div>
     </div>
   );
 };
+
 export default LabList;

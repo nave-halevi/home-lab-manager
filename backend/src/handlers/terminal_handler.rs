@@ -37,19 +37,27 @@ async fn handle_socket(
     let mut send_task = tokio::spawn(async move {
         while let Some(text) = output_rx.recv().await {
             if ws_sender.send(Message::Text(text)).await.is_err() {
-                break; // אם הדפדפן נסגר, אנחנו עוצרים
+                println!("[INFO] WS send_task: Failed to send to browser (Connection closed?).");
+                break; 
             }
         }
+        println!("[INFO] WS send_task terminated.");
     });
 
     let mut recv_task = tokio::spawn(async move {
         while let Some(Ok(msg)) = ws_receiver.next().await {
+            println!("[WS RAW] {:?}", msg);
+
             if let Message::Text(text) = msg {
+                println!("[WS TEXT] {:?}", text);
+
                 if input_tx.send(text).await.is_err() {
+                    println!("[ERROR] WS recv_task: Internal mpsc channel is closed!");
                     break;
                 }
             }
         }
+        println!("[INFO] WS recv_task terminated.");
     });
 
     tokio::select!{
