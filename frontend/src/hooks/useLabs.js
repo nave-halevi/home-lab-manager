@@ -24,10 +24,39 @@ export const useLabs = () => {
       setIsLoading(false);
     }
   };
+  const handleDeleteLab = async () => {
+    if (!activeLab) return;
+
+    try {
+      // אנחנו משתמשים ב-POST ושולחים את המזהה ב-Body, בדיוק כמו שהראסט מצפה
+      const response = await fetch("http://localhost:3000/api/lab/delete", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ env_id: activeLab.envId }), // שים לב שהשתמשנו ב-envId
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete lab on the server");
+      }
+
+      // מנקים את המעבדה מהזיכרון של React כדי שהאתר יחזור לדאשבורד
+      setActiveLab(null);
+      console.log("[SUCCESS] Lab deleted successfully!");
+    } catch (err) {
+      console.error("[ERROR] Failed to terminate lab:", err);
+      setError(
+        "Failed to terminate the lab. You might need to delete it manually.",
+      );
+    }
+  };
+
   return {
     activeLab,
     isLoading,
     error,
     handleCreateLab,
+    handleDeleteLab,
   };
 };

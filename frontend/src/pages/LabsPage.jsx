@@ -1,11 +1,25 @@
 import React from "react";
 import { useLabs } from "../hooks/useLabs";
 import CreateLabButton from "../components/CreateLabButton";
-import LabList from "../components/LabList";
+import LabWorkspace from "../components/LabWorkspace";
 
 const LabsPage = () => {
-  const { activeLab, isLoading, error, handleCreateLab } = useLabs();
+  const { activeLab, isLoading, error, handleCreateLab, handleDeleteLab } = useLabs();
+ 
+ 
+ 
+  console.log("Current activeLab state:", activeLab);
 
+
+  if (activeLab) {
+    console.log("LabWorkspace rendered with props:", {
+      activeLab,
+      onDeleteLab: handleDeleteLab,
+    });
+    return <LabWorkspace activeLab={activeLab} onDeleteLab={handleDeleteLab} />;
+  }
+
+  // Otherwise, render the standard creation dashboard
   return (
     <div
       style={{
@@ -17,15 +31,8 @@ const LabsPage = () => {
     >
       <h1>Cyber Security Home Lab 🚀</h1>
 
-      {/* מעבירים את המצבים והפונקציות למטה כ-Props */}
-      {!activeLab && (
-        <CreateLabButton isLoading={isLoading} onCreate={handleCreateLab} />
-      )}
+      <CreateLabButton isLoading={isLoading} onCreate={handleCreateLab} />
 
-      {/* מעבירים את אובייקט המעבדה למטה */}
-      <LabList activeLab={activeLab} />
-
-      {/* הצגת שגיאות במידה והשרת נכשל */}
       {error && (
         <div
           style={{
@@ -41,4 +48,5 @@ const LabsPage = () => {
     </div>
   );
 };
+
 export default LabsPage;
