@@ -27,16 +27,13 @@ pub fn connect_and_bridge(
     channel.request_pty("xterm", None, Some((80, 24, 0, 0))).map_err(|e| e.to_string())?;
     channel.shell().map_err(|e| e.to_string())?;
     
-    // מעבר למצב לא-חוסם כדי למנוע קיפאון לחלוטין!
     sess.set_blocking(false);
 
     println!("[SUCCESS] Interactive shell started on port {}.", port);
 
     let mut buffer = [0; 1024];
 
-    // לולאה אחת מרכזית שעושה את שני התפקידים יחד ללא נעילות
     loop {
-        // 1. קריאה מהלינוקס (ללא עצירה)
         match channel.read(&mut buffer) {
             Ok(0) => {
                 println!("[INFO] SSH Channel closed by remote.");
@@ -49,7 +46,6 @@ pub fn connect_and_bridge(
                 }
             }
             Err(e) => {
-                // מתעלמים משגיאת "WouldBlock" כי זה פשוט אומר שאין מידע כרגע
                 if e.kind() != std::io::ErrorKind::WouldBlock {
                     eprintln!("[ERROR] SSH Read failed: {}", e);
                     break;
@@ -57,10 +53,9 @@ pub fn connect_and_bridge(
             }
         }
 
-        // 2. כתיבה ללינוקס (ללא עצירה)
         match input_rx.try_recv() {
             Ok(input) => {
-                println!("[DEBUG INPUT TO SSH] {:?}", input); // הנה הלוג שהיה חסר!
+                println!("[DEBUG INPUT TO SSH] {:?}", input); 
                 
                 let mut bytes = input.as_bytes();
                 while !bytes.is_empty() {
@@ -77,7 +72,6 @@ pub fn connect_and_bridge(
                 let _ = channel.flush();
             }
             Err(mpsc::error::TryRecvError::Empty) => {
-                // הצינור ריק כרגע, מדלגים מיד הלאה
             }
             Err(mpsc::error::TryRecvError::Disconnected) => {
                 println!("[INFO] WebSocket disconnected by user.");
@@ -85,7 +79,6 @@ pub fn connect_and_bridge(
             }
         }
 
-        // שינה מיקרוסקופית כדי לא להעמיס על המעבד של השרת
         thread::sleep(Duration::from_millis(5));
     }
 

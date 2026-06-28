@@ -14,7 +14,7 @@ pub async fn handle_create_lab(
     match lab_service::create_user_lab(&pool,payload.user_id, payload.scenario_id).await {
         Ok((env_id, port)) =>{
             (StatusCode::CREATED, Json(CreateLabResponse{
-                message: "המעבדה הוקמה ורצה בהצלחה!".to_string(),
+                message: "The lab was set up and running successfully!".to_string(),
                 ssh_port: Some(port),
                 env_id: Some(env_id),
             }))
