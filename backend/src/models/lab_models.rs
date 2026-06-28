@@ -23,3 +23,14 @@ pub struct DeleteLabRequest {
 pub struct DeleteLabResponse {
     pub message: String,
 }
+
+#[derive(Deserialize)]
+pub struct SubmitFlagRequest {
+    pub env_id: Uuid,
+    pub flag: String,
+}
+
+#[derive(Serialize)]
+pub struct SubmitFlagResponse {
+    pub message: String,
+}

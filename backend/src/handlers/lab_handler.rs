@@ -1,7 +1,7 @@
 use axum::{extract::State, Json, http::StatusCode};
 use sqlx::PgPool;
 
-use crate::models::lab_models::{CreateLabRequest, CreateLabResponse, DeleteLabRequest, DeleteLabResponse};
+use crate::models::lab_models::{CreateLabRequest, CreateLabResponse, DeleteLabRequest, DeleteLabResponse, SubmitFlagRequest, SubmitFlagResponse};
 use crate::services::lab_service;
 
 
@@ -46,5 +46,15 @@ pub async fn handle_delete_lab(
                 message: format!("שגיאה: {}", err),
             }))
         }
+    }
+}
+
+pub async fn handle_submit_flag(
+    State(pool): State<PgPool>,
+    Json(payload): Json<SubmitFlagRequest>
+) -> Json<SubmitFlagResponse> {
+    match lab_service::verify_and_submit_flag(&pool, payload.env_id, &payload.flag).await {
+        Ok(msg) => Json(SubmitFlagResponse { message: msg }),
+        Err(err) => Json(SubmitFlagResponse { message: format!("Error: {}", err) }),
     }
 }

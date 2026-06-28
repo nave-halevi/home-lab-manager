@@ -7,4 +7,5 @@ pub fn router() -> Router<PgPool>{
         .route("/create", post(lab_handler::handle_create_lab))
         .route("/delete", post(lab_handler::handle_delete_lab))
         .route("/terminal/:port", get(terminal_handler::ws_terminal_handler))
+        .route("/submit", post(lab_handler::handle_submit_flag))
 }

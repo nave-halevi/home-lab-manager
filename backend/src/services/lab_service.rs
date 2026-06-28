@@ -1,6 +1,8 @@
 use sqlx::PgPool;
 use tokio::task;
 use uuid::Uuid;
+use crate::db::ctf_repo;
+
 
 use crate::utils::{virtualbox_manager, network};
 
@@ -80,4 +82,31 @@ pub async fn delete_user_lab(pool: &PgPool, env_id: Uuid) -> Result<(), String> 
         .ok();
 
     Ok(())
+}
+
+pub async fn verify_and_submit_flag(pool: &PgPool, env_id: Uuid, submitted_flag: &str) -> Result<String, String> {
+
+    let env_details = ctf_repo::get_env_details(pool, env_id).await
+    .map_err(|e| e.to_string())?;
+
+    let (user_id, scenario_id) = match env_details {
+        Some(details) => details,
+        None => return Err("Environment not found or already terminated".to_string()),
+    };
+
+    let flag_details = ctf_repo::get_flag(pool, scenario_id, submitted_flag).await
+    .map_err(|e| e.to_string())?;
+
+    let (flag_id, points) = match flag_details {
+        Some(details) => details,
+        None => return Ok("❌ Incorrect flag. Keep trying!".to_string()),
+    };
+
+    match ctf_repo::submit_and_score(pool, user_id, flag_id, points).await {
+        Ok(_) => Ok(format!("✅ Correct! You earned {} points.", points)),
+        Err(sqlx::Error::Database(db_err)) if db_err.is_unique_violation() => {
+            Ok("⚠️ You already submitted this flag!".to_string())
+        }
+        Err(e) => Err(e.to_string()),
+    }
 }

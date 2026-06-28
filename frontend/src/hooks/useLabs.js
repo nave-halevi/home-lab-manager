@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { creatLab } from "../services/labService";
+import { createLab } from "../services/labService";
 
 export const useLabs = () => {
   const [activeLab, setActiveLab] = useState(null);
@@ -11,7 +11,7 @@ export const useLabs = () => {
     setError(null);
 
     try {
-      const data = await creatLab();
+      const data = await createLab();
       console.log("📦 Data received from Rust:", data);
 
       setActiveLab({
