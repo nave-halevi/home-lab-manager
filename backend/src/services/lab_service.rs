@@ -1,7 +1,7 @@
 use sqlx::PgPool;
 use tokio::task;
 use uuid::Uuid;
-use crate::db::ctf_repo;
+use crate::repositories::ctf_repo;
 
 
 use crate::utils::{virtualbox_manager, network};
@@ -42,13 +42,13 @@ pub async fn create_user_lab(
         }
     })
     .await
-    .map_err(|_| "שגיאה בגישה ל-VirtualBox".to_string())?;
+    .map_err(|_|"Error accessing VirtualBox".to_string())?;
 
 
     if !is_created{
         sqlx::query!("UPDATE environments SET status = 'Failed' WHERE id = $1", env_id)
             .execute(pool).await.ok();
-        return Err("נכשל בהקמת המעבדה".to_string());
+        return Err("Failed to establish the laboratory".to_string());
     }
 
     sqlx::query!("UPDATE environments SET status = 'Running' WHERE id = $1", env_id)

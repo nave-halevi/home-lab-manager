@@ -6,11 +6,13 @@ use tower_http::cors::{Any, CorsLayer};
 use axum::http::Method;
 
 mod utils;
-mod db;
+mod repositories;
 mod handlers;
 mod models;
 mod routes;
 mod services;
+mod middleware;
+
 
 #[tokio::main]
 async fn main() {

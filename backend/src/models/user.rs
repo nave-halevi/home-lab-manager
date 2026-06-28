@@ -1,7 +1,8 @@
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 use serde::{Serialize, Deserialize};
-use sqlx::FromRow;
+use sqlx::{FromRow};
+
 
 #[derive(Debug, Serialize, Deserialize, FromRow)]
 pub struct User {
@@ -12,7 +13,7 @@ pub struct User {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub total_score: Option<i32>,
-    pub role: Option<String>,
+    pub role: Role,
 }
 
 #[derive(Deserialize)]
@@ -26,4 +27,19 @@ pub struct RegisterRequest {
 pub struct LoginRequest {
     pub email: String,
     pub password: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, sqlx::Type)]
+#[sqlx(type_name = "TEXT")]
+pub enum Role {
+    User,
+    Admin,
+}
+
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Claims {
+    pub sub: String,
+    pub exp: usize,
+    pub role: Role,
 }
