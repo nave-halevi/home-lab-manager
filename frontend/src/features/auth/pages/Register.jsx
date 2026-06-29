@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../../../context/AuthContext";
 
-import Button from "../components/ui/Button";
-import Input from "../components/ui/Input";
-import Card from "../components/ui/Card";
+import Button from "../../../shared/ui/Button";
+import Input from "../../../shared/ui/Input";
+import Card from "../../../shared/ui/Card";
 
 export default function Register() {
   const { register } = useAuth();

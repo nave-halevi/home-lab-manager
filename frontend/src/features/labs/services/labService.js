@@ -1,4 +1,3 @@
-// מגדירים את הכתובת פעם אחת - קל לשנות כשעוברים לשרת אמיתי
 const BASE_URL = "http://localhost:3000/api/lab";
 
 export const createLab = async () => {

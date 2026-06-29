@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { submitLabFlag } from '../services/labService';
+import { submitLabFlag } from '../../labs/services/labService';
 
 export const useCTF = (envId) => {
   const [flagInput, setFlagInput] = useState('');

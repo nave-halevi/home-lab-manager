@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useEffect } from "react";
 import {
   login as loginRequest,
   register as registerRequest,
-} from "../services/authService";
+} from "../features/auth/services/authService";
 
 const AuthContext = createContext();
 
@@ -10,7 +10,6 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
 
-  // 🔄 restore session on refresh
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
     const savedToken = localStorage.getItem("token");

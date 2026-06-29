@@ -1,5 +1,5 @@
 import { Outlet, useNavigate } from "react-router-dom";
-import AppNavbar from "../components/layout/AppNavbar";
+import AppNavbar from "../shared/layout/AppNavbar";
 
 export default function AppLayout() {
   const navigate = useNavigate();

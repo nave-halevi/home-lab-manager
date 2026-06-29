@@ -3,14 +3,14 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import PublicLayout from "./layouts/PublicLayout";
 import AppLayout from "./layouts/AppLayout";
 
-import Landing from "./pages/Landing";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import LabsPage from "./pages/LabsPage";
+import Landing from "./features/auth/pages/Landing";
+import Login from "./features/auth/pages/Login";
+import Register from "./features/auth/pages/Register";
+
+import Dashboard from "./features/labs/pages/Dashboard";
+import Academy from "./features/labs/pages/Academy";
 
 import RequireAuth from "./routes/RequireAuth";
-import Dashboard from "./pages/Dashboard";
-import Academy from "./pages/Academy";
 
 function App() {
   return (
@@ -28,10 +28,7 @@ function App() {
           <Route element={<AppLayout />}>
             <Route path="/dashboard" element={<Dashboard />} />
 
-            <Route
-              path="/academy"
-              element={<Academy />}
-            />
+            <Route path="/academy" element={<Academy />} />
 
             <Route
               path="/machines"
