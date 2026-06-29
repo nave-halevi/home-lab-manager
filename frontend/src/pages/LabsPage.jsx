@@ -4,44 +4,23 @@ import CreateLabButton from "../components/CreateLabButton";
 import LabWorkspace from "../components/LabWorkspace";
 
 const LabsPage = () => {
-  const { activeLab, isLoading, error, handleCreateLab, handleDeleteLab } = useLabs();
- 
- 
- 
+  const { activeLab, isLoading, error, handleCreateLab, handleDeleteLab } =
+    useLabs();
+
   console.log("Current activeLab state:", activeLab);
 
-
   if (activeLab) {
-    console.log("LabWorkspace rendered with props:", {
-      activeLab,
-      onDeleteLab: handleDeleteLab,
-    });
     return <LabWorkspace activeLab={activeLab} onDeleteLab={handleDeleteLab} />;
   }
 
-  // Otherwise, render the standard creation dashboard
   return (
-    <div
-      style={{
-        maxWidth: "800px",
-        margin: "50px auto",
-        textAlign: "center",
-        fontFamily: "sans-serif",
-      }}
-    >
-      <h1>Cyber Security Home Lab 🚀</h1>
+    <div className="min-h-screen flex flex-col items-center justify-center text-center px-6">
+      <h1 className="text-3xl font-bold mb-6">Cyber Security Home Lab 🚀</h1>
 
       <CreateLabButton isLoading={isLoading} onCreate={handleCreateLab} />
 
       {error && (
-        <div
-          style={{
-            color: "red",
-            marginTop: "20px",
-            padding: "10px",
-            backgroundColor: "#ffe6e6",
-          }}
-        >
+        <div className="mt-6 text-red-400 bg-red-950/30 border border-red-900 px-4 py-2 rounded-lg">
           [ERROR] {error}
         </div>
       )}

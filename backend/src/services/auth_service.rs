@@ -4,7 +4,7 @@ use chrono::Utc;
 use jsonwebtoken::{encode, decode,Header, Validation,EncodingKey, DecodingKey};
 
 use crate::repositories::user_repo;
-use crate::models::user::{RegisterRequest, LoginRequest, Role, Claims};
+use crate::models::user::{RegisterRequest, LoginRequest, Role, Claims, UserResponse, LoginResponse};
 
 
 pub async fn register(
@@ -31,7 +31,7 @@ pub async fn register(
 pub async fn login(
     pool: &PgPool,
     req: LoginRequest,
-) -> Result<String, String> {
+) -> Result<LoginResponse, String> {
 
     let user = user_repo::get_user_by_email(pool, &req.email)
         .await
@@ -45,8 +45,21 @@ pub async fn login(
         return Err("Invalid credentials".to_string());
     }
 
-    let token = generate_token(&user.id.to_string(), user.role)?;
-    Ok(token)
+    let user_response = UserResponse {
+    id: user.id,
+    user_name: user.user_name,
+    email: user.email,
+    role: user.role.clone(),
+    total_score: user.total_score,
+};
+
+    let token = generate_token(&user.id.to_string(), user.role.clone())?;
+
+    let response = LoginResponse {
+    token,
+    user: user_response,
+};
+    Ok(response)
 }
 
 

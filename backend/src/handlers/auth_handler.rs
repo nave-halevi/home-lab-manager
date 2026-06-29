@@ -19,9 +19,13 @@ pub async fn login(
     Json(payload): Json<LoginRequest>,
 ) -> impl IntoResponse {
     match auth_service::login(&pool, payload).await {
-        Ok(token) => (
-            StatusCode::OK,
-            Json(serde_json::json!({ "token": token }))).into_response(),
-        Err(e) => (StatusCode::UNAUTHORIZED, e).into_response(),
+       Ok(response) => (
+            StatusCode::OK, 
+            Json(response),).into_response(),
+
+       Err(e) => (
+            StatusCode::UNAUTHORIZED,
+            Json(serde_json::json!({ "error": e })),
+            ).into_response(),
     }
 }

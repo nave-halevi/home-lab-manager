@@ -43,3 +43,20 @@ pub struct Claims {
     pub exp: usize,
     pub role: Role,
 }
+
+
+#[derive(Serialize)]
+pub struct UserResponse {
+    pub id: Uuid,
+    pub user_name: String,
+    pub email: String,
+    pub role: Role,
+    pub total_score: Option<i32>,
+}
+
+
+#[derive(Serialize)]
+pub struct LoginResponse {
+    pub token: String,
+    pub user: UserResponse,
+}

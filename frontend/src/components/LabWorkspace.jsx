@@ -1,85 +1,76 @@
 import React from "react";
 import TerminalWrapper from "./TerminalWrapper";
 import { useCTF } from "../hooks/useCTF";
-import { styles } from "./LabWorkspace.styles"; // מייבאים את העיצוב מהקובץ הנפרד
 
 const LabWorkspace = ({ activeLab, onDeleteLab }) => {
-  // החיבור למוח של המערכת (ה-Hook)
   const { flagInput, setFlagInput, feedback, isSubmitting, handleSubmit } =
     useCTF(activeLab.envId);
 
   return (
-    <div style={styles.container}>
-      {/* Left Side - Study & Task Panel */}
-      <div style={styles.taskPanel}>
-        <div style={styles.header}>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "flex-start",
-            }}
-          >
-            <div>
-              <h2 style={{ marginTop: 0, marginBottom: "5px" }}>
-                Lab 1: Linux Fundamentals
-              </h2>
-              <span style={styles.badge}>Difficulty: Easy</span>
-            </div>
-            <button style={styles.terminateBtn} onClick={onDeleteLab}>
-              🛑 Terminate Lab
-            </button>
+    <div className="min-h-screen bg-zinc-950 text-white flex">
+      {/* LEFT PANEL */}
+      <div className="w-1/2 border-r border-zinc-800 flex flex-col">
+        {/* HEADER */}
+        <div className="flex justify-between items-start p-6 border-b border-zinc-800">
+          <div>
+            <h2 className="text-xl font-bold">{activeLab?.name || "Lab"}</h2>
+
+            <span className="text-xs text-green-500">Difficulty: Easy</span>
           </div>
+
+          <button
+            onClick={onDeleteLab}
+            className="px-3 py-1 text-sm rounded bg-red-600 hover:bg-red-700"
+          >
+            Terminate
+          </button>
         </div>
 
-        <p style={styles.description}>
-          Welcome to the training zone. In this lab, you will learn how to
-          navigate the Linux file system and discover hidden information.
-        </p>
+        {/* DESCRIPTION */}
+        <div className="p-6 text-zinc-400 text-sm leading-6 border-b border-zinc-800">
+          Welcome to the training zone. Learn Linux, exploitation and system
+          enumeration in a safe environment.
+        </div>
 
-        <div style={styles.taskBox}>
-          <h3 style={{ color: "#4CAF50", marginTop: 0 }}>
-            🚩 Current Objective: Capture The Flag
+        {/* TASK */}
+        <div className="p-6 flex-1 flex flex-col gap-4">
+          <h3 className="text-green-500 font-semibold">
+            🚩 Objective: Capture The Flag
           </h3>
-          <p>
-            Navigate to the <code>/tmp</code> directory in the system. Inside,
-            there is a hidden text file named <code>flag.txt</code>. Output its
-            contents using the <code>cat</code> command, and submit the flag you
-            found below to complete the lab.
+
+          <p className="text-sm text-zinc-400">
+            Navigate to <code>/tmp</code>, locate <code>flag.txt</code>, and
+            extract its content using <code>cat</code>.
           </p>
 
+          {/* INPUT */}
           <input
-            type="text"
-            placeholder="Enter the flag (e.g., CTF{...})"
-            style={styles.input}
+            className="bg-zinc-900 border border-zinc-800 rounded px-3 py-2 text-white"
+            placeholder="CTF{...}"
             value={flagInput}
             onChange={(e) => setFlagInput(e.target.value)}
           />
 
+          {/* BUTTON */}
           <button
-            style={styles.button}
             onClick={(e) => {
-              e.preventDefault(); 
+              e.preventDefault();
               handleSubmit();
             }}
+            disabled={isSubmitting}
+            className="bg-green-600 hover:bg-green-700 disabled:opacity-50 px-4 py-2 rounded"
           >
             {isSubmitting ? "Checking..." : "Submit Flag"}
           </button>
 
+          {/* FEEDBACK (LOGIC נשאר זהה) */}
           {feedback && (
             <div
-              style={{
-                marginTop: "15px",
-                padding: "10px",
-                borderRadius: "4px",
-                textAlign: "center",
-                fontWeight: "bold",
-                backgroundColor: feedback.includes("✅")
-                  ? "rgba(35, 134, 54, 0.2)"
-                  : "rgba(248, 81, 73, 0.2)",
-                color: feedback.includes("✅") ? "#4CAF50" : "#f85149",
-                border: `1px solid ${feedback.includes("✅") ? "#4CAF50" : "#f85149"}`,
-              }}
+              className={`text-center text-sm p-3 rounded border ${
+                feedback.includes("✅")
+                  ? "text-green-400 border-green-900 bg-green-950/30"
+                  : "text-red-400 border-red-900 bg-red-950/30"
+              }`}
             >
               {feedback}
             </div>
@@ -87,8 +78,8 @@ const LabWorkspace = ({ activeLab, onDeleteLab }) => {
         </div>
       </div>
 
-      {/* Right Side - Live Terminal */}
-      <div style={styles.terminalPanel}>
+      {/* RIGHT PANEL - TERMINAL (לא נוגעים) */}
+      <div className="w-1/2 bg-black">
         <TerminalWrapper activeLab={activeLab} />
       </div>
     </div>

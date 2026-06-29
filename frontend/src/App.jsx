@@ -1,53 +1,57 @@
-import React from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import Navbar from "./components/Navbar";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+
+import PublicLayout from "./layouts/PublicLayout";
+import AppLayout from "./layouts/AppLayout";
+
+import Landing from "./pages/Landing";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
 import LabsPage from "./pages/LabsPage";
+
+import RequireAuth from "./routes/RequireAuth";
+import Dashboard from "./pages/Dashboard";
+import Academy from "./pages/Academy";
 
 function App() {
   return (
-    <Router>
-      <div
-        className="App"
-        style={{ backgroundColor: "#0d1117", minHeight: "100vh" }}
-      >
-        <Navbar />
+    <BrowserRouter>
+      <Routes>
+        {/* PUBLIC ROUTES */}
+        <Route element={<PublicLayout />}>
+          <Route path="/" element={<Landing />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+        </Route>
 
-        <Routes>
-          <Route path="/" element={<LabsPage />} />
+        {/* PROTECTED ROUTES */}
+        <Route element={<RequireAuth />}>
+          <Route element={<AppLayout />}>
+            <Route path="/dashboard" element={<Dashboard />} />
 
-          <Route
-            path="/academy"
-            element={
-              <div
-                style={{ color: "white", padding: "50px", textAlign: "center" }}
-              >
-                Academy Paths Coming Soon...
-              </div>
-            }
-          />
-          <Route
-            path="/machines"
-            element={
-              <div
-                style={{ color: "white", padding: "50px", textAlign: "center" }}
-              >
-                Standalone Machines Coming Soon...
-              </div>
-            }
-          />
-          <Route
-            path="/leaderboard"
-            element={
-              <div
-                style={{ color: "white", padding: "50px", textAlign: "center" }}
-              >
-                Leaderboard Coming Soon...
-              </div>
-            }
-          />
-        </Routes>
-      </div>
-    </Router>
+            <Route
+              path="/academy"
+              element={<Academy />}
+            />
+
+            <Route
+              path="/machines"
+              element={
+                <div className="p-10 text-white">Machines Coming Soon...</div>
+              }
+            />
+
+            <Route
+              path="/leaderboard"
+              element={
+                <div className="p-10 text-white">
+                  Leaderboard Coming Soon...
+                </div>
+              }
+            />
+          </Route>
+        </Route>
+      </Routes>
+    </BrowserRouter>
   );
 }
 
