@@ -36,8 +36,7 @@ async fn main() {
     let app = Router::new()
         .nest("/api", routes::create_api_router())
         .layer(cors) 
-       
- .with_state(pool);
+        .with_state(pool);
   
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000")
         .await.unwrap();

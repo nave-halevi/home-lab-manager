@@ -4,8 +4,7 @@ import CreateLabButton from "../components/CreateLabButton";
 import LabWorkspace from "../components/LabWorkspace";
 
 const LabsPage = () => {
-  const { activeLab, isLoading, error, handleCreateLab, handleDeleteLab } =
-    useLabs();
+  const { activeLab, isLoading, error, handleCreateLab, handleDeleteLab } = useLabs();
 
   console.log("Current activeLab state:", activeLab);
 

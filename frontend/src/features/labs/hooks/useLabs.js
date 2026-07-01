@@ -24,6 +24,7 @@ export const useLabs = () => {
       setIsLoading(false);
     }
   };
+  
   const handleDeleteLab = async () => {
     if (!activeLab) return;
 
