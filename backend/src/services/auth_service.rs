@@ -51,14 +51,15 @@ pub async fn login(
     email: user.email,
     role: user.role.clone(),
     total_score: user.total_score,
-};
+    };
 
     let token = generate_token(&user.id.to_string(), user.role.clone())?;
 
     let response = LoginResponse {
     token,
     user: user_response,
-};
+    };
+
     Ok(response)
 }
 
