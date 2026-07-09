@@ -12,7 +12,7 @@ pub struct User {
     pub password_hash: String,    
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
-    pub total_score: Option<i32>,
+    pub total_score: i32,
     pub role: Role,
 }
 
@@ -51,7 +51,7 @@ pub struct UserResponse {
     pub user_name: String,
     pub email: String,
     pub role: Role,
-    pub total_score: Option<i32>,
+    pub total_score: i32,
 }
 
 

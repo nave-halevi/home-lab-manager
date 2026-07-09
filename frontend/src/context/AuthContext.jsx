@@ -33,7 +33,7 @@ export function AuthProvider({ children }) {
     const data = await registerRequest(user_name, email, password);
     return data;
   };
-  
+
   const logout = () => {
     setUser(null);
     setToken(null);

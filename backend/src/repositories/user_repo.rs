@@ -1,6 +1,5 @@
 use sqlx::PgPool;
-use crate::models::user::{User,Role};
-
+use crate::models::user::{User, Role};
 
 pub async fn create_user(
     pool: &PgPool,
@@ -12,7 +11,7 @@ pub async fn create_user(
     let row = sqlx::query!(
         r#"
         INSERT INTO users (user_name, email, password_hash, role)
-        VALUES ($1, $2, $3, 'User')
+        VALUES ($1, $2, $3, 'user')
         RETURNING id, user_name, email, password_hash, role, created_at, updated_at, total_score
         "#,
         user_name,
@@ -22,6 +21,11 @@ pub async fn create_user(
     .fetch_one(pool)
     .await?;
 
+    let role = match row.role.as_str() {
+        "admin" => Role::Admin,
+        _ => Role::User,
+    };
+
     let user = User {
         id: row.id,
         user_name: row.user_name,
@@ -30,12 +34,11 @@ pub async fn create_user(
         created_at: row.created_at,
         updated_at: row.updated_at,
         total_score: row.total_score,
-        role: Role::User, 
+        role,
     };
 
     Ok(user)
 }
-
 
 pub async fn get_all_users(pool: &PgPool) -> Result<Vec<User>, sqlx::Error> {
 
@@ -51,8 +54,8 @@ pub async fn get_all_users(pool: &PgPool) -> Result<Vec<User>, sqlx::Error> {
     let users = rows
         .into_iter()
         .map(|row| {
-            let role = match row.role.as_deref().unwrap_or("User") {
-                "Admin" => Role::Admin,
+            let role = match row.role.as_str() {
+                "admin" => Role::Admin,
                 _ => Role::User,
             };
 
@@ -72,7 +75,6 @@ pub async fn get_all_users(pool: &PgPool) -> Result<Vec<User>, sqlx::Error> {
     Ok(users)
 }
 
-
 pub async fn get_user_by_email(
     pool: &PgPool,
     email: &str
@@ -91,8 +93,8 @@ pub async fn get_user_by_email(
 
     let user = match row {
         Some(row) => {
-            let role = match row.role.as_deref().unwrap_or("User") {
-                "Admin" => Role::Admin,
+            let role = match row.role.as_str() {
+                "admin" => Role::Admin,
                 _ => Role::User,
             };
 

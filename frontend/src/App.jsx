@@ -9,6 +9,7 @@ import Register from "./features/auth/pages/Register";
 
 import Dashboard from "./features/labs/pages/Dashboard";
 import Academy from "./features/labs/pages/Academy";
+import Machines from "./features/labs/pages/Machines";
 
 import RequireAuth from "./routes/RequireAuth";
 
@@ -30,12 +31,7 @@ function App() {
 
             <Route path="/academy" element={<Academy />} />
 
-            <Route
-              path="/machines"
-              element={
-                <div className="p-10 text-white">Machines Coming Soon...</div>
-              }
-            />
+            <Route path="/machines" element={<Machines />} />
 
             <Route
               path="/leaderboard"

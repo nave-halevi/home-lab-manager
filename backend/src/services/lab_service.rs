@@ -12,6 +12,22 @@ pub async fn create_user_lab(
     scenario_id: Uuid
 ) -> Result<(Uuid, u16 ), String> {
 
+    sqlx::query!(
+        r#"
+        INSERT INTO scenarios (id, title, difficulty, description, vm_template_name)
+        VALUES ($1, $2, $3, $4, $5)
+        ON CONFLICT (id) DO NOTHING
+        "#,
+        scenario_id,
+        "Linux Fundamentals",
+        "Easy",
+        "Default lab scenario",
+        "Ubuntu_Base_Template"
+    )
+    .execute(pool)
+    .await
+    .map_err(|e| e.to_string())?;
+
     let vm_name = format!("lab-{}-{}", user_id,Uuid::new_v4().as_simple());
 
     let env_id = sqlx::query!(

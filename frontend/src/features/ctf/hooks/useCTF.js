@@ -10,7 +10,6 @@ export const useCTF = (envId) => {
     console.log("🔥 CLICK EVENT DETECTED!");
     console.log("🎯 הלחיצה נקלטה! ערך התיבה כרגע:", flagInput);
 
-    // במקום פשוט לעצור בשקט, אנחנו נותנים פידבק למשתמש
     if (!flagInput || flagInput.trim() === '') {
       console.log("🛑 עצרתי לפני פנייה לשרת כי התיבה ריקה");
       setFeedback("⚠️ Please enter a flag first!");

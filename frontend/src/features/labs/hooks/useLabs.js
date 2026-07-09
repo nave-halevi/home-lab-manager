@@ -1,17 +1,19 @@
 import { useState } from "react";
+import { useAuth } from "../../../context/AuthContext";
 import { createLab } from "../services/labService";
 
 export const useLabs = () => {
+  const { user } = useAuth();
   const [activeLab, setActiveLab] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const handleCreateLab = async () => {
+  const handleCreateLab = async (scenarioId) => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const data = await createLab();
+      const data = await createLab(scenarioId, user?.id);
       console.log("📦 Data received from Rust:", data);
 
       setActiveLab({
