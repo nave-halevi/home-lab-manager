@@ -2,15 +2,13 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import PublicLayout from "./layouts/PublicLayout";
 import AppLayout from "./layouts/AppLayout";
-
 import Landing from "./features/auth/pages/Landing";
 import Login from "./features/auth/pages/Login";
 import Register from "./features/auth/pages/Register";
-
 import Dashboard from "./features/labs/pages/Dashboard";
-import Academy from "./features/labs/pages/Academy";
 import Machines from "./features/labs/pages/Machines";
-
+import CoursesPage from "./features/academy/pages/CoursesPage";
+import CoursePage from "./features/academy/pages/CoursePage";
 import RequireAuth from "./routes/RequireAuth";
 
 function App() {
@@ -28,9 +26,8 @@ function App() {
         <Route element={<RequireAuth />}>
           <Route element={<AppLayout />}>
             <Route path="/dashboard" element={<Dashboard />} />
-
-            <Route path="/academy" element={<Academy />} />
-
+            <Route path="/academy" element={<CoursesPage />} />
+            <Route path="/academy/:courseId" element={<CoursePage />} />
             <Route path="/machines" element={<Machines />} />
 
             <Route
