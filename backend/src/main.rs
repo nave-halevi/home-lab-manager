@@ -12,6 +12,7 @@ mod models;
 mod routes;
 mod services;
 mod middleware;
+mod errors;
 
 
 #[tokio::main]

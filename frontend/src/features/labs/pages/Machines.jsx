@@ -1,5 +1,5 @@
 import { useLabs } from "../hooks/useLabs";
-import Button from "../components/ui/Button";
+import Button from "../../../shared/ui/Button";
 
 export default function Machines() {
   const { activeLab, handleCreateLab, isLoading } = useLabs();
@@ -13,12 +13,12 @@ export default function Machines() {
     {
       name: "Bash Scripting",
       difficulty: "Easy",
-      scenario: "11111111-2222-3333-4444-555555555555",
+      scenario: "98b7d92f-7fbb-446c-90e5-df05aea4d27f",
     },
     {
       name: "Privilege Escalation",
       difficulty: "Medium",
-      scenario: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+      scenario: "98b7d92f-7fbb-446c-90e5-df05aea4d27f",
     },
   ];
 
