@@ -1,95 +1,103 @@
-import React, { useEffect, useRef } from "react";
-import { Terminal } from "xterm";
+import { useEffect, useRef } from "react";
+
 import { FitAddon } from "@xterm/addon-fit";
+import { Terminal } from "xterm";
 import "xterm/css/xterm.css";
+
+import { getTerminalUrl } from "../../labs/services/labService";
 
 const TerminalWrapper = ({ activeLab }) => {
   const containerRef = useRef(null);
-  const terminalRef = useRef(null);
-  const websocketRef = useRef(null);
 
   useEffect(() => {
-    if (!containerRef.current || !activeLab) return;
+    if (!containerRef.current || !activeLab?.envId) {
+      return undefined;
+    }
 
-    const term = new Terminal({
+    const terminal = new Terminal({
       cursorBlink: true,
       fontFamily: "Courier New, monospace",
-      fontSize: 16,
+      fontSize: 15,
+      scrollback: 5000,
       theme: {
-        background: "#0f141c",
-        foreground: "#00ff00",
-        cursor: "#00ff00",
+        background: "#09090b",
+        foreground: "#e4e4e7",
+        cursor: "#fafafa",
       },
     });
 
     const fitAddon = new FitAddon();
-    term.loadAddon(fitAddon);
-    term.open(containerRef.current);
+
+    terminal.loadAddon(fitAddon);
+    terminal.open(containerRef.current);
     fitAddon.fit();
+    terminal.focus();
 
-    term.writeln("====================================");
-    term.writeln("   CONNECTING TO REMOTE INFRASTRUCTURE ");
-    term.writeln("====================================");
+    terminal.writeln(
+      "\x1b[33mConnecting to the lab machine...\x1b[0m",
+    );
 
-    const wsUrl = `ws://localhost:3000/api/lab/terminal/${activeLab.port}`;
-    const ws = new WebSocket(wsUrl);
-    websocketRef.current = ws;
+    const websocket = new WebSocket(
+      getTerminalUrl(activeLab.envId),
+    );
 
-    ws.onopen = () => {
-      term.writeln("Status: Connection established successfully.");
-      term.writeln("------------------------------------");
+    websocket.onopen = () => {
+      terminal.writeln(
+        "\x1b[32mTerminal connected successfully.\x1b[0m",
+      );
     };
 
-    ws.onmessage = (event) => {
-      term.write(event.data);
+    websocket.onmessage = (event) => {
+      terminal.write(event.data);
     };
 
-    ws.onclose = () => {
-      term.writeln("");
-      term.writeln("Status: Connection closed by remote host.");
+    websocket.onerror = () => {
+      terminal.writeln(
+        "\r\n\x1b[31mTerminal connection error.\x1b[0m",
+      );
     };
 
-    ws.onerror = () => {
-      term.writeln("");
-      term.writeln("Status: Core network bridge error.");
+    websocket.onclose = () => {
+      terminal.writeln(
+        "\r\n\x1b[33mTerminal disconnected.\x1b[0m",
+      );
     };
+
+    const inputListener = terminal.onData((data) => {
+      if (websocket.readyState === WebSocket.OPEN) {
+        websocket.send(data);
+      }
+    });
 
     const handleResize = () => {
       fitAddon.fit();
     };
+
     window.addEventListener("resize", handleResize);
 
-    const dataListener = term.onData((data) => {
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.send(data);
-      }
-    });
-
-    terminalRef.current = term;
-
     return () => {
-      window.removeEventListener("resize", handleResize);
-      dataListener.dispose();
+      window.removeEventListener(
+        "resize",
+        handleResize,
+      );
+
+      inputListener.dispose();
+
       if (
-        ws.readyState === WebSocket.OPEN ||
-        ws.readyState === WebSocket.CONNECTING
+        websocket.readyState === WebSocket.OPEN ||
+        websocket.readyState === WebSocket.CONNECTING
       ) {
-        ws.close();
+        websocket.close();
       }
-      term.dispose();
+
+      terminal.dispose();
     };
   }, [activeLab]);
 
   return (
     <div
       ref={containerRef}
-      style={{
-        width: "100%",
-        height: "100%",
-        padding: "10px",
-        boxSizing: "border-box",
-        textAlign: "left",
-      }}
+      className="h-full min-h-[400px] w-full bg-zinc-950 p-2 text-left"
     />
   );
 };

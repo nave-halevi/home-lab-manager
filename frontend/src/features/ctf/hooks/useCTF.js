@@ -1,46 +1,84 @@
-import { useState } from 'react';
-import { submitLabFlag } from '../../labs/services/labService';
+import { useCallback, useState } from "react";
 
-export const useCTF = (envId) => {
-  const [flagInput, setFlagInput] = useState('');
+import { useAuth } from "../../../context/AuthContext";
+import { submitLabFlag } from "../../labs/services/labService";
+
+export const useCTF = (environmentId, taskId) => {
+  const { user } = useAuth();
+
+  const [flagInput, setFlagInput] = useState("");
   const [feedback, setFeedback] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSolved, setIsSolved] = useState(false);
 
-  const handleSubmit = async () => {
-    console.log("🔥 CLICK EVENT DETECTED!");
-    console.log("🎯 הלחיצה נקלטה! ערך התיבה כרגע:", flagInput);
+  const clearFeedback = useCallback(() => {
+    setFeedback(null);
+  }, []);
 
-    if (!flagInput || flagInput.trim() === '') {
-      console.log("🛑 עצרתי לפני פנייה לשרת כי התיבה ריקה");
-      setFeedback("⚠️ Please enter a flag first!");
-      return;
+  const handleSubmit = useCallback(async () => {
+    const normalizedFlag = flagInput.trim();
+
+    if (!environmentId) {
+      setFeedback("⚠️ Start the lab machine before submitting a flag.");
+      return false;
+    }
+
+    if (!taskId) {
+      setFeedback("❌ This lab is not connected to a task.");
+      return false;
+    }
+
+    if (!user?.id) {
+      setFeedback("❌ Authenticated user was not found.");
+      return false;
+    }
+
+    if (!normalizedFlag) {
+      setFeedback("⚠️ Please enter a flag first.");
+      return false;
     }
 
     setIsSubmitting(true);
     setFeedback(null);
-    console.log("📡 פונה לשרת עם המזהה:", envId);
 
     try {
-      const data = await submitLabFlag(envId, flagInput);
-      console.log("✅ השרת ענה:", data);
-      setFeedback(data.message);
+      const data = await submitLabFlag(
+        user.id,
+        environmentId,
+        taskId,
+        normalizedFlag,
+      );
 
-      if (data.message.includes('✅')) {
-        setFlagInput('');
+      const message = data?.message || "The server did not return a message.";
+
+      setFeedback(message);
+
+      const solved =
+        message.includes("✅") ||
+        message.includes("already submitted") ||
+        message.toLowerCase().includes("correct");
+
+      if (solved) {
+        setIsSolved(true);
+        setFlagInput("");
       }
+
+      return solved;
     } catch (error) {
-      console.error("❌ שגיאת תקשורת מול השרת:", error);
-      setFeedback('❌ Failed to connect to server.');
+      setFeedback(`❌ ${error.message || "Failed to submit flag."}`);
+      return false;
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }, [environmentId, taskId, flagInput, user?.id]);
 
   return {
     flagInput,
     setFlagInput,
     feedback,
     isSubmitting,
-    handleSubmit
+    isSolved,
+    handleSubmit,
+    clearFeedback,
   };
 };

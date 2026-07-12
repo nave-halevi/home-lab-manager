@@ -3,6 +3,7 @@ import PracticeLayout from "./layouts/PracticeLayout";
 import LabLayout from "./layouts/LabLayout";
 
 export default function TaskRenderer({ task }) {
+  console.log("TASK RENDERER TASK:", task);
   if (!task) {
     return (
       <div className="flex h-full items-center justify-center text-zinc-500">
