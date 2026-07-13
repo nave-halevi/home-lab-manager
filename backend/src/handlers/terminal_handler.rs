@@ -1,36 +1,19 @@
 use axum::{
     extract::{
-        ws::{
-            Message,
-            WebSocket,
-            WebSocketUpgrade,
-        },
-        Path,
-        State,
+        Path, State,
+        ws::{Message, WebSocket, WebSocketUpgrade},
     },
     http::StatusCode,
-    response::{
-        IntoResponse,
-        Response,
-    },
+    response::{IntoResponse, Response},
 };
-use futures_util::{
-    sink::SinkExt,
-    stream::StreamExt,
-};
+use futures_util::{sink::SinkExt, stream::StreamExt};
 use sqlx::PgPool;
 use tokio::sync::mpsc;
 use uuid::Uuid;
 
 use crate::{
-    models::status::{
-        EnvironmentStatus,
-        InstanceStatus,
-    },
-    repositories::{
-        environment_repo,
-        instance_repo,
-    },
+    models::status::{EnvironmentStatus, InstanceStatus},
+    repositories::{environment_repo, instance_repo},
     utils::ssh_manager,
 };
 
@@ -44,32 +27,19 @@ pub async fn ws_terminal_handler(
         environment_id
     );
 
-    let environment = match environment_repo::find_environment_by_id(
-        &pool,
-        environment_id,
-    )
-    .await
-    {
+    let environment = match environment_repo::find_environment_by_id(&pool, environment_id).await {
         Ok(Some(environment)) => environment,
 
         Ok(None) => {
-            eprintln!(
-                "[Terminal] Environment '{}' was not found.",
-                environment_id
-            );
+            eprintln!("[Terminal] Environment '{}' was not found.", environment_id);
 
-            return (
-                StatusCode::NOT_FOUND,
-                "Environment not found",
-            )
-                .into_response();
+            return (StatusCode::NOT_FOUND, "Environment not found").into_response();
         }
 
         Err(error) => {
             eprintln!(
                 "[Terminal] Failed to retrieve environment '{}': {}",
-                environment_id,
-                error
+                environment_id, error
             );
 
             return (
@@ -80,28 +50,16 @@ pub async fn ws_terminal_handler(
         }
     };
 
-    if environment.status
-        != EnvironmentStatus::Running.as_str()
-    {
+    if environment.status != EnvironmentStatus::Running.as_str() {
         eprintln!(
             "[Terminal] Environment '{}' is not running. Current status: '{}'.",
-            environment_id,
-            environment.status
+            environment_id, environment.status
         );
 
-        return (
-            StatusCode::CONFLICT,
-            "Environment is not running",
-        )
-            .into_response();
+        return (StatusCode::CONFLICT, "Environment is not running").into_response();
     }
 
-    let instance = match instance_repo::find_by_environment_id(
-        &pool,
-        environment_id,
-    )
-    .await
-    {
+    let instance = match instance_repo::find_by_environment_id(&pool, environment_id).await {
         Ok(Some(instance)) => instance,
 
         Ok(None) => {
@@ -110,18 +68,13 @@ pub async fn ws_terminal_handler(
                 environment_id
             );
 
-            return (
-                StatusCode::NOT_FOUND,
-                "No instance found for environment",
-            )
-                .into_response();
+            return (StatusCode::NOT_FOUND, "No instance found for environment").into_response();
         }
 
         Err(error) => {
             eprintln!(
                 "[Terminal] Failed to retrieve instance for environment '{}': {}",
-                environment_id,
-                error
+                environment_id, error
             );
 
             return (
@@ -132,20 +85,13 @@ pub async fn ws_terminal_handler(
         }
     };
 
-    if instance.status
-        != InstanceStatus::Running.as_str()
-    {
+    if instance.status != InstanceStatus::Running.as_str() {
         eprintln!(
             "[Terminal] Instance '{}' is not running. Current status: '{}'.",
-            instance.id,
-            instance.status
+            instance.id, instance.status
         );
 
-        return (
-            StatusCode::CONFLICT,
-            "Instance is not running",
-        )
-            .into_response();
+        return (StatusCode::CONFLICT, "Instance is not running").into_response();
     }
 
     let ssh_port = match instance.ssh_port {
@@ -155,8 +101,7 @@ pub async fn ws_terminal_handler(
             Err(_) => {
                 eprintln!(
                     "[Terminal] Invalid SSH port '{}' stored for instance '{}'.",
-                    port,
-                    instance.id
+                    port, instance.id
                 );
 
                 return (
@@ -183,34 +128,19 @@ pub async fn ws_terminal_handler(
 
     println!(
         "[Terminal] Environment '{}' resolved to instance '{}' on SSH port '{}'.",
-        environment_id,
-        instance.id,
-        ssh_port
+        environment_id, instance.id, ssh_port
     );
 
-    ws.on_upgrade(move |socket| {
-        handle_socket(
-            socket,
-            environment_id,
-            ssh_port,
-        )
-    })
+    ws.on_upgrade(move |socket| handle_socket(socket, environment_id, ssh_port))
 }
 
-async fn handle_socket(
-    socket: WebSocket,
-    environment_id: Uuid,
-    ssh_port: u16,
-) {
+async fn handle_socket(socket: WebSocket, environment_id: Uuid, ssh_port: u16) {
     println!(
         "[Terminal] WebSocket upgraded for environment '{}'.",
         environment_id
     );
 
-    let (
-        mut websocket_sender,
-        mut websocket_receiver,
-    ) = socket.split();
+    let (mut websocket_sender, mut websocket_receiver) = socket.split();
 
     /*
         Browser input is forwarded to the blocking SSH thread.
@@ -218,11 +148,9 @@ async fn handle_socket(
         SSH output is forwarded back to the asynchronous
         WebSocket sender.
     */
-    let (input_sender, input_receiver) =
-        mpsc::channel::<String>(100);
+    let (input_sender, input_receiver) = mpsc::channel::<String>(100);
 
-    let (output_sender, mut output_receiver) =
-        mpsc::channel::<String>(100);
+    let (output_sender, mut output_receiver) = mpsc::channel::<String>(100);
 
     /*
         Temporary credentials.
@@ -243,91 +171,62 @@ async fn handle_socket(
         )
     });
 
-    let mut websocket_send_task =
-        tokio::spawn(async move {
-            while let Some(output) =
-                output_receiver.recv().await
-            {
-                if websocket_sender
-                    .send(Message::Text(output))
-                    .await
-                    .is_err()
-                {
-                    println!(
-                        "[Terminal] Browser disconnected while sending output."
-                    );
+    let mut websocket_send_task = tokio::spawn(async move {
+        while let Some(output) = output_receiver.recv().await {
+            if websocket_sender.send(Message::Text(output)).await.is_err() {
+                println!("[Terminal] Browser disconnected while sending output.");
+
+                break;
+            }
+        }
+
+        println!("[Terminal] WebSocket output task finished.");
+    });
+
+    let mut websocket_receive_task = tokio::spawn(async move {
+        while let Some(message_result) = websocket_receiver.next().await {
+            let message = match message_result {
+                Ok(message) => message,
+
+                Err(error) => {
+                    eprintln!("[Terminal] WebSocket receive error: {}", error);
+
+                    break;
+                }
+            };
+
+            match message {
+                Message::Text(input) => {
+                    if input_sender.send(input).await.is_err() {
+                        eprintln!("[Terminal] SSH input channel was closed.");
+
+                        break;
+                    }
+                }
+
+                Message::Binary(_) => {
+                    println!("[Terminal] Ignoring unsupported binary WebSocket message.");
+                }
+
+                Message::Ping(_) => {
+                    /*
+                        Axum's WebSocket implementation handles
+                        WebSocket control frames internally.
+                    */
+                }
+
+                Message::Pong(_) => {}
+
+                Message::Close(_) => {
+                    println!("[Terminal] Browser requested WebSocket closure.");
 
                     break;
                 }
             }
+        }
 
-            println!(
-                "[Terminal] WebSocket output task finished."
-            );
-        });
-
-    let mut websocket_receive_task =
-        tokio::spawn(async move {
-            while let Some(message_result) =
-                websocket_receiver.next().await
-            {
-                let message = match message_result {
-                    Ok(message) => message,
-
-                    Err(error) => {
-                        eprintln!(
-                            "[Terminal] WebSocket receive error: {}",
-                            error
-                        );
-
-                        break;
-                    }
-                };
-
-                match message {
-                    Message::Text(input) => {
-                        if input_sender
-                            .send(input)
-                            .await
-                            .is_err()
-                        {
-                            eprintln!(
-                                "[Terminal] SSH input channel was closed."
-                            );
-
-                            break;
-                        }
-                    }
-
-                    Message::Binary(_) => {
-                        println!(
-                            "[Terminal] Ignoring unsupported binary WebSocket message."
-                        );
-                    }
-
-                    Message::Ping(_) => {
-                        /*
-                            Axum's WebSocket implementation handles
-                            WebSocket control frames internally.
-                        */
-                    }
-
-                    Message::Pong(_) => {}
-
-                    Message::Close(_) => {
-                        println!(
-                            "[Terminal] Browser requested WebSocket closure."
-                        );
-
-                        break;
-                    }
-                }
-            }
-
-            println!(
-                "[Terminal] WebSocket input task finished."
-            );
-        });
+        println!("[Terminal] WebSocket input task finished.");
+    });
 
     tokio::select! {
         _ = &mut websocket_send_task => {

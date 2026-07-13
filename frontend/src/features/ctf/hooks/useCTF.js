@@ -1,11 +1,8 @@
 import { useCallback, useState } from "react";
 
-import { useAuth } from "../../../context/AuthContext";
 import { submitLabFlag } from "../../labs/services/labService";
 
 export const useCTF = (environmentId, taskId) => {
-  const { user } = useAuth();
-
   const [flagInput, setFlagInput] = useState("");
   const [feedback, setFeedback] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -28,11 +25,6 @@ export const useCTF = (environmentId, taskId) => {
       return false;
     }
 
-    if (!user?.id) {
-      setFeedback("❌ Authenticated user was not found.");
-      return false;
-    }
-
     if (!normalizedFlag) {
       setFeedback("⚠️ Please enter a flag first.");
       return false;
@@ -42,12 +34,7 @@ export const useCTF = (environmentId, taskId) => {
     setFeedback(null);
 
     try {
-      const data = await submitLabFlag(
-        user.id,
-        environmentId,
-        taskId,
-        normalizedFlag,
-      );
+      const data = await submitLabFlag(environmentId, taskId, normalizedFlag);
 
       const message = data?.message || "The server did not return a message.";
 
@@ -70,7 +57,7 @@ export const useCTF = (environmentId, taskId) => {
     } finally {
       setIsSubmitting(false);
     }
-  }, [environmentId, taskId, flagInput, user?.id]);
+  }, [environmentId, taskId, flagInput]);
 
   return {
     flagInput,

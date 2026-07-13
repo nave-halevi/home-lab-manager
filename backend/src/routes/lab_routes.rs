@@ -1,41 +1,31 @@
 use axum::{
-    routing::{
-        get,
-        post,
-    },
-    Router,
+    Router, middleware,
+    routing::{get, post},
 };
 use sqlx::PgPool;
 
-use crate::handlers::{
-    lab_handler,
-    terminal_handler,
+use crate::{
+    handlers::{lab_handler, terminal_handler},
+    middleware::auth_middleware::auth_middleware,
 };
 
 pub fn router() -> Router<PgPool> {
-    Router::new()
+    let protected_routes = Router::new()
+        .route("/create", post(lab_handler::handle_create_lab))
+        .route("/delete", post(lab_handler::handle_delete_lab))
+        .route("/submit", post(lab_handler::handle_submit_flag))
         .route(
-            "/create",
-            post(lab_handler::handle_create_lab),
-        )
-        .route(
-            "/delete",
-            post(lab_handler::handle_delete_lab),
-        )
-        .route(
-            "/submit",
-            post(lab_handler::handle_submit_flag),
-        )
-        .route(
-            "/status/:user_id/:environment_id",
+            "/status/:environment_id",
             get(lab_handler::handle_get_lab_status),
         )
         .route(
-            "/active/:user_id/:scenario_id",
+            "/active/:scenario_id",
             get(lab_handler::handle_get_active_lab),
         )
-        .route(
-            "/terminal/:environment_id",
-            get(terminal_handler::ws_terminal_handler),
-        )
+        .route_layer(middleware::from_fn(auth_middleware));
+
+    Router::new().merge(protected_routes).route(
+        "/terminal/:environment_id",
+        get(terminal_handler::ws_terminal_handler),
+    )
 }

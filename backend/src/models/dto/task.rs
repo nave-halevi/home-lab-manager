@@ -3,7 +3,6 @@ use uuid::Uuid;
 
 use crate::models::entities::task::Task;
 
-
 #[derive(Debug, Serialize)]
 pub struct TaskDto {
     pub id: Uuid,
@@ -28,7 +27,6 @@ pub struct TaskResponseDto {
     pub points: i32,
 }
 
-
 #[derive(Debug, Deserialize)]
 pub struct CreateTaskRequest {
     pub section_id: Uuid,
@@ -49,7 +47,6 @@ pub struct UpdateTaskRequest {
     pub order_index: Option<i32>,
     pub points: Option<i32>,
 }
-
 
 impl From<Task> for TaskResponseDto {
     fn from(task: Task) -> Self {

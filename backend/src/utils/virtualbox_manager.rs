@@ -1,13 +1,7 @@
 use std::{
-    net::{
-        TcpStream,
-        ToSocketAddrs,
-    },
+    net::{TcpStream, ToSocketAddrs},
     thread,
-    time::{
-        Duration,
-        Instant,
-    },
+    time::{Duration, Instant},
 };
 
 use std::process::{Command, Output};
@@ -29,13 +23,9 @@ fn run_vbox_command(args: &[&str]) -> Result<Output, String> {
 }
 
 fn output_error(action: &str, output: &Output) -> String {
-    let stderr = String::from_utf8_lossy(&output.stderr)
-        .trim()
-        .to_string();
+    let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
 
-    let stdout = String::from_utf8_lossy(&output.stdout)
-        .trim()
-        .to_string();
+    let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
 
     if !stderr.is_empty() {
         format!("{}: {}", action, stderr)
@@ -104,14 +94,10 @@ pub fn vm_exists(vm_name: &str) -> Result<bool, String> {
     ))
 }
 
-pub fn clone_vm(
-    base_vm: &str,
-    new_vm_name: &str,
-) -> Result<(), String> {
+pub fn clone_vm(base_vm: &str, new_vm_name: &str) -> Result<(), String> {
     println!(
         "[VirtualBox] Cloning template '{}' as '{}'...",
-        base_vm,
-        new_vm_name
+        base_vm, new_vm_name
     );
 
     if vm_exists(new_vm_name)? {
@@ -128,41 +114,27 @@ pub fn clone_vm(
         ));
     }
 
-    let output = run_vbox_command(&[
-        "clonevm",
-        base_vm,
-        "--name",
-        new_vm_name,
-        "--register",
-    ])?;
+    let output = run_vbox_command(&["clonevm", base_vm, "--name", new_vm_name, "--register"])?;
 
     if !output.status.success() {
         return Err(output_error(
             &format!(
                 "Failed to clone template '{}' as '{}'",
-                base_vm,
-                new_vm_name
+                base_vm, new_vm_name
             ),
             &output,
         ));
     }
 
-    println!(
-        "[VirtualBox] VM '{}' was cloned successfully.",
-        new_vm_name
-    );
+    println!("[VirtualBox] VM '{}' was cloned successfully.", new_vm_name);
 
     Ok(())
 }
 
-pub fn configure_ssh_port_forwarding(
-    vm_name: &str,
-    host_ssh_port: u16,
-) -> Result<(), String> {
+pub fn configure_ssh_port_forwarding(vm_name: &str, host_ssh_port: u16) -> Result<(), String> {
     println!(
         "[VirtualBox] Configuring SSH forwarding localhost:{} -> guest:22 for '{}'...",
-        host_ssh_port,
-        vm_name
+        host_ssh_port, vm_name
     );
 
     /*
@@ -170,24 +142,13 @@ pub fn configure_ssh_port_forwarding(
 
         rule-name,protocol,host-ip,host-port,guest-ip,guest-port
     */
-    let forwarding_rule = format!(
-        "guestssh,tcp,127.0.0.1,{},,22",
-        host_ssh_port
-    );
+    let forwarding_rule = format!("guestssh,tcp,127.0.0.1,{},,22", host_ssh_port);
 
-    let output = run_vbox_command(&[
-        "modifyvm",
-        vm_name,
-        "--natpf1",
-        &forwarding_rule,
-    ])?;
+    let output = run_vbox_command(&["modifyvm", vm_name, "--natpf1", &forwarding_rule])?;
 
     if !output.status.success() {
         return Err(output_error(
-            &format!(
-                "Failed to configure SSH port forwarding for '{}'",
-                vm_name
-            ),
+            &format!("Failed to configure SSH port forwarding for '{}'", vm_name),
             &output,
         ));
     }
@@ -200,63 +161,35 @@ pub fn configure_ssh_port_forwarding(
     Ok(())
 }
 
-pub fn start_vm(
-    vm_name: &str,
-    host_ssh_port: u16,
-) -> Result<(), String> {
-    configure_ssh_port_forwarding(
-        vm_name,
-        host_ssh_port,
-    )?;
+pub fn start_vm(vm_name: &str, host_ssh_port: u16) -> Result<(), String> {
+    configure_ssh_port_forwarding(vm_name, host_ssh_port)?;
 
-    println!(
-        "[VirtualBox] Starting VM '{}' in headless mode...",
-        vm_name
-    );
+    println!("[VirtualBox] Starting VM '{}' in headless mode...", vm_name);
 
-    let output = run_vbox_command(&[
-        "startvm",
-        vm_name,
-        "--type",
-        "headless",
-    ])?;
+    let output = run_vbox_command(&["startvm", vm_name, "--type", "headless"])?;
 
     if !output.status.success() {
         return Err(output_error(
-            &format!(
-                "Failed to start virtual machine '{}'",
-                vm_name
-            ),
+            &format!("Failed to start virtual machine '{}'", vm_name),
             &output,
         ));
     }
 
     println!(
         "[VirtualBox] VM '{}' is running. SSH endpoint: 127.0.0.1:{}",
-        vm_name,
-        host_ssh_port
+        vm_name, host_ssh_port
     );
 
     Ok(())
 }
 
 pub fn power_off_vm(vm_name: &str) -> Result<(), String> {
-    println!(
-        "[VirtualBox] Powering off VM '{}'...",
-        vm_name
-    );
+    println!("[VirtualBox] Powering off VM '{}'...", vm_name);
 
-    let output = run_vbox_command(&[
-        "controlvm",
-        vm_name,
-        "poweroff",
-    ])?;
+    let output = run_vbox_command(&["controlvm", vm_name, "poweroff"])?;
 
     if output.status.success() {
-        println!(
-            "[VirtualBox] VM '{}' was powered off.",
-            vm_name
-        );
+        println!("[VirtualBox] VM '{}' was powered off.", vm_name);
 
         return Ok(());
     }
@@ -266,13 +199,8 @@ pub fn power_off_vm(vm_name: &str) -> Result<(), String> {
     /*
         If the machine is already stopped, deletion can continue.
     */
-    if stderr.contains("is not currently running")
-        || stderr.contains("Invalid machine state")
-    {
-        println!(
-            "[VirtualBox] VM '{}' was already stopped.",
-            vm_name
-        );
+    if stderr.contains("is not currently running") || stderr.contains("Invalid machine state") {
+        println!("[VirtualBox] VM '{}' was already stopped.", vm_name);
 
         return Ok(());
     }
@@ -284,10 +212,7 @@ pub fn power_off_vm(vm_name: &str) -> Result<(), String> {
 }
 
 pub fn delete_vm(vm_name: &str) -> Result<(), String> {
-    println!(
-        "[VirtualBox] Starting deletion of VM '{}'...",
-        vm_name
-    );
+    println!("[VirtualBox] Starting deletion of VM '{}'...", vm_name);
 
     if !vm_exists(vm_name)? {
         println!(
@@ -300,69 +225,34 @@ pub fn delete_vm(vm_name: &str) -> Result<(), String> {
 
     power_off_vm(vm_name)?;
 
-    let output = run_vbox_command(&[
-        "unregistervm",
-        vm_name,
-        "--delete",
-    ])?;
+    let output = run_vbox_command(&["unregistervm", vm_name, "--delete"])?;
 
     if !output.status.success() {
         return Err(output_error(
-            &format!(
-                "Failed to unregister and delete VM '{}'",
-                vm_name
-            ),
+            &format!("Failed to unregister and delete VM '{}'", vm_name),
             &output,
         ));
     }
 
-    println!(
-        "[VirtualBox] VM '{}' was completely deleted.",
-        vm_name
-    );
+    println!("[VirtualBox] VM '{}' was completely deleted.", vm_name);
 
     Ok(())
 }
 
-pub fn wait_for_ssh(
-    host_ssh_port: u16,
-    timeout: Duration,
-) -> Result<(), String> {
-    let address = format!(
-        "127.0.0.1:{}",
-        host_ssh_port
-    );
+pub fn wait_for_ssh(host_ssh_port: u16, timeout: Duration) -> Result<(), String> {
+    let address = format!("127.0.0.1:{}", host_ssh_port);
 
     let socket_address = address
         .to_socket_addrs()
-        .map_err(|error| {
-            format!(
-                "Failed to resolve SSH address '{}': {}",
-                address,
-                error
-            )
-        })?
+        .map_err(|error| format!("Failed to resolve SSH address '{}': {}", address, error))?
         .next()
-        .ok_or_else(|| {
-            format!(
-                "No socket address found for '{}'",
-                address
-            )
-        })?;
+        .ok_or_else(|| format!("No socket address found for '{}'", address))?;
 
     let started_at = Instant::now();
 
     while started_at.elapsed() < timeout {
-        if TcpStream::connect_timeout(
-            &socket_address,
-            Duration::from_secs(2),
-        )
-        .is_ok()
-        {
-            println!(
-                "[VirtualBox] SSH is ready on '{}'.",
-                address
-            );
+        if TcpStream::connect_timeout(&socket_address, Duration::from_secs(2)).is_ok() {
+            println!("[VirtualBox] SSH is ready on '{}'.", address);
 
             return Ok(());
         }
@@ -376,4 +266,3 @@ pub fn wait_for_ssh(
         timeout.as_secs()
     ))
 }
-

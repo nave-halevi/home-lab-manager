@@ -1,5 +1,24 @@
+use chrono::{DateTime, Utc};
 use sqlx::PgPool;
 use uuid::Uuid;
+
+#[derive(Debug)]
+pub struct TaskProgressRow {
+    pub task_id: Uuid,
+    pub task_title: String,
+    pub task_type: String,
+    pub task_order_index: i32,
+
+    pub section_id: Uuid,
+    pub section_title: String,
+    pub section_order_index: i32,
+
+    pub points: i32,
+    pub status: String,
+
+    pub started_at: Option<DateTime<Utc>>,
+    pub completed_at: Option<DateTime<Utc>>,
+}
 
 pub async fn mark_task_completed(
     pool: &PgPool,
@@ -41,4 +60,74 @@ pub async fn mark_task_completed(
     .await?;
 
     Ok(())
+}
+
+pub async fn get_course_progress(
+    pool: &PgPool,
+    user_id: Uuid,
+    course_id: Uuid,
+) -> Result<Vec<TaskProgressRow>, sqlx::Error> {
+    let progress = sqlx::query_as!(
+        TaskProgressRow,
+        r#"
+        SELECT
+            t.id AS task_id,
+            t.title AS task_title,
+            t.task_type,
+            t.order_index AS task_order_index,
+
+            s.id AS section_id,
+            s.title AS section_title,
+            s.order_index AS section_order_index,
+
+            t.points,
+
+            COALESCE(
+                utp.status,
+                'NOT_STARTED'
+            ) AS "status!",
+
+            utp.started_at,
+            utp.completed_at
+
+        FROM tasks t
+
+        INNER JOIN sections s
+            ON s.id = t.section_id
+
+        LEFT JOIN user_task_progress utp
+            ON utp.task_id = t.id
+            AND utp.user_id = $1
+
+        WHERE s.course_id = $2
+
+        ORDER BY
+            s.order_index ASC,
+            t.order_index ASC
+        "#,
+        user_id,
+        course_id
+    )
+    .fetch_all(pool)
+    .await?;
+
+    Ok(progress)
+}
+
+pub async fn get_course_id_by_task_id(
+    pool: &PgPool,
+    task_id: Uuid,
+) -> Result<Option<Uuid>, sqlx::Error> {
+    sqlx::query_scalar!(
+        r#"
+        SELECT s.course_id
+        FROM tasks t
+        INNER JOIN sections s
+            ON s.id = t.section_id
+        WHERE t.id = $1
+        "#,
+        task_id
+    )
+    .fetch_optional(pool)
+    .await
 }

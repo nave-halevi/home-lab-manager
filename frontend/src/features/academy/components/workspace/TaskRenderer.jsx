@@ -2,8 +2,7 @@ import LessonLayout from "./layouts/LessonLayout";
 import PracticeLayout from "./layouts/PracticeLayout";
 import LabLayout from "./layouts/LabLayout";
 
-export default function TaskRenderer({ task }) {
-  console.log("TASK RENDERER TASK:", task);
+export default function TaskRenderer({ task, onTaskCompleted }) {
   if (!task) {
     return (
       <div className="flex h-full items-center justify-center text-zinc-500">
@@ -14,13 +13,13 @@ export default function TaskRenderer({ task }) {
 
   switch (task.task_type) {
     case "LESSON":
-      return <LessonLayout task={task} />;
-
+      return <LessonLayout task={task} onTaskCompleted={onTaskCompleted} />;
+      
     case "PRACTICE":
       return <PracticeLayout task={task} />;
 
     case "LAB":
-      return <LabLayout task={task} />;
+      return <LabLayout task={task} onTaskCompleted={onTaskCompleted} />;
 
     default:
       return <LessonLayout task={task} />;

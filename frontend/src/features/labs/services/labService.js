@@ -24,26 +24,23 @@ async function parseResponse(response) {
       data?.error ||
       `Request failed with status ${response.status}`;
 
-    throw new Error(message);
+    ```
+throw new Error(message);
+```;
   }
 
   return data;
 }
 
-export async function createLab(scenarioId, userId) {
+export async function createLab(scenarioId) {
   if (!scenarioId) {
     throw new Error("Scenario ID is required to create a lab.");
-  }
-
-  if (!userId) {
-    throw new Error("User ID is required to create a lab.");
   }
 
   const response = await fetch(`${BASE_URL}/create`, {
     method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify({
-      user_id: userId,
       scenario_id: scenarioId,
     }),
   });
@@ -51,11 +48,7 @@ export async function createLab(scenarioId, userId) {
   return parseResponse(response);
 }
 
-export async function deleteLab(userId, environmentId) {
-  if (!userId) {
-    throw new Error("User ID is required to delete a lab.");
-  }
-
+export async function deleteLab(environmentId) {
   if (!environmentId) {
     throw new Error("Environment ID is required to delete a lab.");
   }
@@ -64,7 +57,6 @@ export async function deleteLab(userId, environmentId) {
     method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify({
-      user_id: userId,
       env_id: environmentId,
     }),
   });
@@ -72,12 +64,12 @@ export async function deleteLab(userId, environmentId) {
   return parseResponse(response);
 }
 
-export async function getActiveLab(userId, scenarioId) {
-  if (!userId || !scenarioId) {
+export async function getActiveLab(scenarioId) {
+  if (!scenarioId) {
     return null;
   }
 
-  const response = await fetch(`${BASE_URL}/active/${userId}/${scenarioId}`, {
+  const response = await fetch(`${BASE_URL}/active/${scenarioId}`, {
     method: "GET",
     headers: getAuthHeaders(),
   });
@@ -85,27 +77,20 @@ export async function getActiveLab(userId, scenarioId) {
   return parseResponse(response);
 }
 
-export async function getLabStatus(userId, environmentId) {
-  if (!userId || !environmentId) {
+export async function getLabStatus(environmentId) {
+  if (!environmentId) {
     return null;
   }
 
-  const response = await fetch(
-    `${BASE_URL}/status/${userId}/${environmentId}`,
-    {
-      method: "GET",
-      headers: getAuthHeaders(),
-    },
-  );
+  const response = await fetch(`${BASE_URL}/status/${environmentId}`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  });
 
   return parseResponse(response);
 }
 
-export async function submitLabFlag(userId, environmentId, taskId, flagValue) {
-  if (!userId) {
-    throw new Error("User ID is required to submit a flag.");
-  }
-
+export async function submitLabFlag(environmentId, taskId, flagValue) {
   if (!environmentId) {
     throw new Error("Start the lab machine before submitting a flag.");
   }
@@ -122,7 +107,6 @@ export async function submitLabFlag(userId, environmentId, taskId, flagValue) {
     method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify({
-      user_id: userId,
       env_id: environmentId,
       task_id: taskId,
       flag: flagValue.trim(),

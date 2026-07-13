@@ -1,7 +1,4 @@
-use chrono::{
-    DateTime,
-    Utc,
-};
+use chrono::{DateTime, Utc};
 use serde::Serialize;
 use uuid::Uuid;
 

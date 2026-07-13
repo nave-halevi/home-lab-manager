@@ -1,9 +1,8 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::models::entities::section::Section;
 use crate::models::dto::task::TaskDto;
-
+use crate::models::entities::section::Section;
 
 #[derive(Debug, Serialize)]
 pub struct SectionDto {
@@ -37,9 +36,7 @@ pub struct UpdateSectionRequest {
     pub order_index: Option<i32>,
 }
 
-
 impl From<Section> for SectionResponseDto {
-
     fn from(section: Section) -> Self {
         Self {
             id: section.id,
