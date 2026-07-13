@@ -1,19 +1,12 @@
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::models::entities::{
-    course::Course,
-    section::Section,
-    task::Task,
-};
+use crate::models::entities::{course::Course, section::Section, task::Task};
 
 use crate::models::dto::{
     course::UpdateCourseRequest,
     section::UpdateSectionRequest,
-    task::{
-        CreateTaskRequest,
-        UpdateTaskRequest,
-    },
+    task::{CreateTaskRequest, UpdateTaskRequest},
 };
 
 // =====================================================
@@ -27,8 +20,6 @@ pub async fn create_course(
     description: Option<&str>,
     difficulty: Option<&str>,
 ) -> Result<Course, sqlx::Error> {
-
-
     sqlx::query_as!(
         Course,
         r#"
@@ -56,11 +47,7 @@ pub async fn create_course(
     .await
 }
 
-pub async fn get_courses(
-    pool: &PgPool,
-) -> Result<Vec<Course>, sqlx::Error> {
-
-
+pub async fn get_courses(pool: &PgPool) -> Result<Vec<Course>, sqlx::Error> {
     sqlx::query_as!(
         Course,
         r#"
@@ -82,12 +69,7 @@ pub async fn get_courses(
     .await
 }
 
-pub async fn get_course_by_id(
-    pool: &PgPool,
-    id: Uuid,
-) -> Result<Option<Course>, sqlx::Error> {
-
-
+pub async fn get_course_by_id(pool: &PgPool, id: Uuid) -> Result<Option<Course>, sqlx::Error> {
     sqlx::query_as!(
         Course,
         r#"
@@ -115,11 +97,8 @@ pub async fn update_course(
     id: Uuid,
     req: UpdateCourseRequest,
 ) -> Result<Course, sqlx::Error> {
-
-
     sqlx::query_as!(
         Course,
-
         r#"
         UPDATE courses
 
@@ -141,7 +120,6 @@ pub async fn update_course(
             is_published,
             created_at
         "#,
-
         id,
         req.title,
         req.slug,
@@ -153,12 +131,7 @@ pub async fn update_course(
     .await
 }
 
-pub async fn delete_course(
-    pool: &PgPool,
-    id: Uuid,
-) -> Result<(), sqlx::Error> {
-
-
+pub async fn delete_course(pool: &PgPool, id: Uuid) -> Result<(), sqlx::Error> {
     sqlx::query!(
         r#"
         DELETE FROM courses
@@ -168,7 +141,6 @@ pub async fn delete_course(
     )
     .execute(pool)
     .await?;
-
 
     Ok(())
 }
@@ -197,11 +169,8 @@ pub async fn get_course_full_rows(
     pool: &PgPool,
     course_id: Uuid,
 ) -> Result<Vec<CourseFullRow>, sqlx::Error> {
-
-
     sqlx::query_as!(
         CourseFullRow,
-
         r#"
         SELECT
                 s.id as section_id,
@@ -225,7 +194,6 @@ pub async fn get_course_full_rows(
 
             ORDER BY s.order_index, t.order_index
         "#,
-
         course_id
     )
     .fetch_all(pool)
@@ -243,11 +211,8 @@ pub async fn create_section(
     description: Option<&str>,
     order_index: i32,
 ) -> Result<Section, sqlx::Error> {
-
-
     sqlx::query_as!(
         Section,
-
         r#"
         INSERT INTO sections
             (course_id, title, description, order_index)
@@ -262,7 +227,6 @@ pub async fn create_section(
             description,
             order_index
         "#,
-
         course_id,
         title,
         description,
@@ -272,15 +236,9 @@ pub async fn create_section(
     .await
 }
 
-pub async fn get_section_by_id(
-    pool: &PgPool,
-    id: Uuid,
-) -> Result<Option<Section>, sqlx::Error> {
-
-
+pub async fn get_section_by_id(pool: &PgPool, id: Uuid) -> Result<Option<Section>, sqlx::Error> {
     sqlx::query_as!(
         Section,
-
         r#"
         SELECT
             id,
@@ -293,23 +251,18 @@ pub async fn get_section_by_id(
 
         WHERE id = $1
         "#,
-
         id
     )
     .fetch_optional(pool)
     .await
 }
 
-
 pub async fn get_sections_by_course(
     pool: &PgPool,
     course_id: Uuid,
 ) -> Result<Vec<Section>, sqlx::Error> {
-
-
     sqlx::query_as!(
         Section,
-
         r#"
         SELECT
             id,
@@ -324,24 +277,19 @@ pub async fn get_sections_by_course(
 
         ORDER BY order_index
         "#,
-
         course_id
     )
     .fetch_all(pool)
     .await
 }
 
-
 pub async fn update_section(
     pool: &PgPool,
     id: Uuid,
     req: UpdateSectionRequest,
 ) -> Result<Section, sqlx::Error> {
-
-
     sqlx::query_as!(
         Section,
-
         r#"
         UPDATE sections
 
@@ -359,7 +307,6 @@ pub async fn update_section(
             description,
             order_index
         "#,
-
         id,
         req.title,
         req.description,
@@ -369,12 +316,7 @@ pub async fn update_section(
     .await
 }
 
-pub async fn delete_section(
-    pool: &PgPool,
-    id: Uuid,
-) -> Result<(), sqlx::Error> {
-
-
+pub async fn delete_section(pool: &PgPool, id: Uuid) -> Result<(), sqlx::Error> {
     sqlx::query!(
         r#"
         DELETE FROM sections
@@ -388,20 +330,13 @@ pub async fn delete_section(
     Ok(())
 }
 
-
 // =====================================================
 // Tasks
 // =====================================================
 
-pub async fn create_task(
-    pool: &PgPool,
-    req: CreateTaskRequest,
-) -> Result<Task, sqlx::Error> {
-
-
+pub async fn create_task(pool: &PgPool, req: CreateTaskRequest) -> Result<Task, sqlx::Error> {
     sqlx::query_as!(
         Task,
-
         r#"
         INSERT INTO tasks
             (
@@ -428,7 +363,6 @@ pub async fn create_task(
             order_index,
             points
         "#,
-
         req.section_id,
         req.scenario_id,
         req.title,
@@ -441,15 +375,9 @@ pub async fn create_task(
     .await
 }
 
-pub async fn get_task_by_id(
-    pool: &PgPool,
-    id: Uuid,
-) -> Result<Option<Task>, sqlx::Error> {
-
-
+pub async fn get_task_by_id(pool: &PgPool, id: Uuid) -> Result<Option<Task>, sqlx::Error> {
     sqlx::query_as!(
         Task,
-
         r#"
         SELECT
             id,
@@ -465,7 +393,6 @@ pub async fn get_task_by_id(
 
         WHERE id = $1
         "#,
-
         id
     )
     .fetch_optional(pool)
@@ -476,11 +403,8 @@ pub async fn get_tasks_by_section(
     pool: &PgPool,
     section_id: Uuid,
 ) -> Result<Vec<Task>, sqlx::Error> {
-
-
     sqlx::query_as!(
         Task,
-
         r#"
         SELECT
             id,
@@ -498,7 +422,6 @@ pub async fn get_tasks_by_section(
 
         ORDER BY order_index
         "#,
-
         section_id
     )
     .fetch_all(pool)
@@ -510,11 +433,8 @@ pub async fn update_task(
     id: Uuid,
     req: UpdateTaskRequest,
 ) -> Result<Task, sqlx::Error> {
-
-
     sqlx::query_as!(
         Task,
-
         r#"
         UPDATE tasks
 
@@ -547,7 +467,6 @@ pub async fn update_task(
             order_index,
             points
         "#,
-
         id,
         req.title,
         req.content,
@@ -560,24 +479,17 @@ pub async fn update_task(
     .await
 }
 
-pub async fn delete_task(
-    pool: &PgPool,
-    id: Uuid,
-) -> Result<(), sqlx::Error> {
-
-
+pub async fn delete_task(pool: &PgPool, id: Uuid) -> Result<(), sqlx::Error> {
     sqlx::query!(
         r#"
         DELETE FROM tasks
 
         WHERE id = $1
         "#,
-
         id
     )
     .execute(pool)
     .await?;
-
 
     Ok(())
 }

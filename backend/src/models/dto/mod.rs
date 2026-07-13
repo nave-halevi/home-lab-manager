@@ -1,4 +1,5 @@
 pub mod course;
+pub mod lab;
 pub mod section;
 pub mod task;
-pub mod lab;
+pub mod task_progress;

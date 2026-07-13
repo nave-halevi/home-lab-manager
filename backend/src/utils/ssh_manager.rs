@@ -1,9 +1,9 @@
 use ssh2::Session;
 use std::io::{Read, Write};
 use std::net::TcpStream;
-use tokio::sync::mpsc;
 use std::thread;
 use std::time::Duration;
+use tokio::sync::mpsc;
 
 pub fn connect_and_bridge(
     port: u16,
@@ -21,12 +21,15 @@ pub fn connect_and_bridge(
     let mut sess = Session::new().unwrap();
     sess.set_tcp_stream(tcp);
     sess.handshake().map_err(|e| e.to_string())?;
-    sess.userauth_password(username, password).map_err(|e| e.to_string())?;
+    sess.userauth_password(username, password)
+        .map_err(|e| e.to_string())?;
 
     let mut channel = sess.channel_session().map_err(|e| e.to_string())?;
-    channel.request_pty("xterm", None, Some((80, 24, 0, 0))).map_err(|e| e.to_string())?;
+    channel
+        .request_pty("xterm", None, Some((80, 24, 0, 0)))
+        .map_err(|e| e.to_string())?;
     channel.shell().map_err(|e| e.to_string())?;
-    
+
     sess.set_blocking(false);
 
     println!("[SUCCESS] Interactive shell started on port {}.", port);
@@ -55,8 +58,8 @@ pub fn connect_and_bridge(
 
         match input_rx.try_recv() {
             Ok(input) => {
-                println!("[DEBUG INPUT TO SSH] {:?}", input); 
-                
+                println!("[DEBUG INPUT TO SSH] {:?}", input);
+
                 let mut bytes = input.as_bytes();
                 while !bytes.is_empty() {
                     match channel.write(bytes) {
@@ -71,8 +74,7 @@ pub fn connect_and_bridge(
                 }
                 let _ = channel.flush();
             }
-            Err(mpsc::error::TryRecvError::Empty) => {
-            }
+            Err(mpsc::error::TryRecvError::Empty) => {}
             Err(mpsc::error::TryRecvError::Disconnected) => {
                 println!("[INFO] WebSocket disconnected by user.");
                 break;

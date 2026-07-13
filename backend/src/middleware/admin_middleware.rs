@@ -1,17 +1,8 @@
-use axum::{
-    extract::Request,
-    middleware::Next,
-    response::Response,
-    http::StatusCode,
-};
+use axum::{extract::Request, http::StatusCode, middleware::Next, response::Response};
 
 use crate::models::user::{Claims, Role};
 
-pub async fn admin_middleware(
-    req: Request,
-    next: Next,
-) -> Result<Response, StatusCode> {
-
+pub async fn admin_middleware(req: Request, next: Next) -> Result<Response, StatusCode> {
     let claims = req
         .extensions()
         .get::<Claims>()

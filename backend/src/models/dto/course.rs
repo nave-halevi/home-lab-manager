@@ -34,7 +34,6 @@ pub struct UpdateCourseRequest {
     pub is_published: bool,
 }
 
-
 #[derive(Debug, Serialize)]
 pub struct CourseResponseDto {
     pub id: Uuid,
@@ -45,7 +44,6 @@ pub struct CourseResponseDto {
     pub is_published: bool,
     pub created_at: DateTime<Utc>,
 }
-
 
 impl From<Course> for CourseResponseDto {
     fn from(course: Course) -> Self {

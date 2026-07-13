@@ -1,13 +1,8 @@
-use serde::{
-    Deserialize,
-    Serialize,
-};
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-
-#[derive(Debug, serde::Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct SubmitFlagRequest {
-    pub user_id: Uuid,
     pub env_id: Uuid,
     pub task_id: Uuid,
     pub flag: String,
@@ -15,7 +10,6 @@ pub struct SubmitFlagRequest {
 
 #[derive(Debug, Deserialize)]
 pub struct CreateLabRequest {
-    pub user_id: Uuid,
     pub scenario_id: Uuid,
 }
 
@@ -28,7 +22,6 @@ pub struct CreateLabResponse {
 
 #[derive(Debug, Deserialize)]
 pub struct DeleteLabRequest {
-    pub user_id: Uuid,
     pub env_id: Uuid,
 }
 

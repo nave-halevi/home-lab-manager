@@ -4,6 +4,7 @@ export default function SectionSidebar({
   sections,
   selectedTask,
   onSelectTask,
+  progressByTaskId,
 }) {
   return (
     <aside
@@ -23,6 +24,7 @@ export default function SectionSidebar({
             key={section.id}
             section={section}
             selectedTask={selectedTask}
+            progressByTaskId={progressByTaskId}
             onSelectTask={onSelectTask}
           />
         ))}

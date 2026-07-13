@@ -9,7 +9,7 @@ import FlagWidget from "../widgets/FlagWidget";
 import MachineWidget from "../widgets/MachineWidget";
 import TerminalWidget from "../widgets/TerminalWidget";
 
-export default function LabLayout({ task }) {
+export default function LabLayout({ task, onTaskCompleted }) {
   const {
     activeLab,
     isLoading,
@@ -59,7 +59,11 @@ export default function LabLayout({ task }) {
               before starting a machine.
             </div>
           ) : (
-            <FlagWidget environmentId={activeLab?.envId} taskId={task?.id} />
+            <FlagWidget
+              environmentId={activeLab?.envId}
+              taskId={task?.id}
+              onTaskCompleted={onTaskCompleted}
+            />
           )}
         </div>
       </LearningPanel>

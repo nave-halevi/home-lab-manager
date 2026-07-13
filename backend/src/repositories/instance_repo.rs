@@ -1,12 +1,7 @@
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::{
-    models::{
-        entities::Instance,
-        status::InstanceStatus,
-    },
-};
+use crate::models::{entities::Instance, status::InstanceStatus};
 
 pub async fn create_instance(
     pool: &PgPool,
@@ -15,7 +10,6 @@ pub async fn create_instance(
     ssh_port: i32,
     is_entry_point: bool,
 ) -> Result<Instance, sqlx::Error> {
-
     let status = InstanceStatus::Starting.as_str();
 
     sqlx::query_as!(
@@ -62,7 +56,6 @@ pub async fn find_by_environment_id(
     pool: &PgPool,
     environment_id: Uuid,
 ) -> Result<Option<Instance>, sqlx::Error> {
-
     sqlx::query_as!(
         Instance,
         r#"
@@ -92,7 +85,6 @@ pub async fn update_instance_status(
     instance_id: Uuid,
     status: InstanceStatus,
 ) -> Result<Instance, sqlx::Error> {
-
     sqlx::query_as!(
         Instance,
         r#"
@@ -124,7 +116,6 @@ pub async fn update_instance_status_by_environment(
     environment_id: Uuid,
     status: InstanceStatus,
 ) -> Result<(), sqlx::Error> {
-
     sqlx::query!(
         r#"
         UPDATE instances

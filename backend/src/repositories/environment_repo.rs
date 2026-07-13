@@ -1,12 +1,7 @@
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::{
-    models::{
-        entities::Environment,
-        status::EnvironmentStatus,
-    },
-};
+use crate::models::{entities::Environment, status::EnvironmentStatus};
 
 pub async fn create_environment(
     pool: &PgPool,

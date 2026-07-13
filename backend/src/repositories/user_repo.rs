@@ -1,5 +1,5 @@
+use crate::models::user::{Role, User};
 use sqlx::PgPool;
-use crate::models::user::{User, Role};
 
 pub async fn create_user(
     pool: &PgPool,
@@ -7,7 +7,6 @@ pub async fn create_user(
     email: &str,
     password_hash: &str,
 ) -> Result<User, sqlx::Error> {
-
     let row = sqlx::query!(
         r#"
         INSERT INTO users (user_name, email, password_hash, role)
@@ -41,7 +40,6 @@ pub async fn create_user(
 }
 
 pub async fn get_all_users(pool: &PgPool) -> Result<Vec<User>, sqlx::Error> {
-
     let rows = sqlx::query!(
         r#"
         SELECT id, user_name, email, password_hash, role, created_at, updated_at, total_score
@@ -75,11 +73,7 @@ pub async fn get_all_users(pool: &PgPool) -> Result<Vec<User>, sqlx::Error> {
     Ok(users)
 }
 
-pub async fn get_user_by_email(
-    pool: &PgPool,
-    email: &str
-) -> Result<Option<User>, sqlx::Error> {
-
+pub async fn get_user_by_email(pool: &PgPool, email: &str) -> Result<Option<User>, sqlx::Error> {
     let row = sqlx::query!(
         r#"
         SELECT id, user_name, email, password_hash, role, created_at, updated_at, total_score

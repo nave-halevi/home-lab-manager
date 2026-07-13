@@ -1,6 +1,6 @@
 import { useCTF } from "../../../../ctf/hooks/useCTF";
 
-export default function FlagWidget({ environmentId, taskId }) {
+export default function FlagWidget({ environmentId, taskId, onTaskCompleted }) {
   const {
     flagInput,
     setFlagInput,
@@ -10,6 +10,14 @@ export default function FlagWidget({ environmentId, taskId }) {
     handleSubmit,
     clearFeedback,
   } = useCTF(environmentId, taskId);
+
+  const submitFlag = async () => {
+    const solved = await handleSubmit();
+
+    if (solved) {
+      await onTaskCompleted?.();
+    }
+  };
 
   const handleInputChange = (event) => {
     setFlagInput(event.target.value);
@@ -22,7 +30,7 @@ export default function FlagWidget({ environmentId, taskId }) {
   const handleKeyDown = (event) => {
     if (event.key === "Enter") {
       event.preventDefault();
-      handleSubmit();
+      submitFlag();
     }
   };
 

@@ -1,8 +1,8 @@
-use axum::{Json, extract::State, response::IntoResponse};
-use sqlx::PgPool;
-use crate::models::user::{RegisterRequest, LoginRequest};
+use crate::models::user::{LoginRequest, RegisterRequest};
 use crate::services::auth_service;
 use axum::http::StatusCode;
+use axum::{Json, extract::State, response::IntoResponse};
+use sqlx::PgPool;
 
 pub async fn register(
     State(pool): State<PgPool>,
@@ -19,13 +19,12 @@ pub async fn login(
     Json(payload): Json<LoginRequest>,
 ) -> impl IntoResponse {
     match auth_service::login(&pool, payload).await {
-       Ok(response) => (
-            StatusCode::OK, 
-            Json(response),).into_response(),
+        Ok(response) => (StatusCode::OK, Json(response)).into_response(),
 
-       Err(e) => (
+        Err(e) => (
             StatusCode::UNAUTHORIZED,
             Json(serde_json::json!({ "error": e })),
-            ).into_response(),
+        )
+            .into_response(),
     }
 }
