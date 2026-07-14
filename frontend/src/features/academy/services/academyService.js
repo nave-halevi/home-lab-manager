@@ -92,3 +92,30 @@ export const completeContentTask = async (taskId) => {
 
   return data;
 };
+
+export const startTask = async (taskId) => {
+  if (!taskId) {
+    throw new Error("Task ID is required");
+  }
+
+  const token = localStorage.getItem("token");
+
+  const response = await fetch(
+    `http://localhost:3000/api/task-progress/tasks/${taskId}/start`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: token ? `Bearer ${token}` : "",
+      },
+    },
+  );
+
+  const data = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    throw new Error(data?.message || "Failed to start task");
+  }
+
+  return data;
+};

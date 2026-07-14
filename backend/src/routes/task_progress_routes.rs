@@ -16,5 +16,9 @@ pub fn router() -> Router<PgPool> {
             "/tasks/:task_id/complete",
             post(task_progress_handler::complete_content_task_handler),
         )
+        .route(
+            "/tasks/:task_id/start",
+            post(task_progress_handler::start_task_handler),
+        )
         .route_layer(middleware::from_fn(auth_middleware))
 }

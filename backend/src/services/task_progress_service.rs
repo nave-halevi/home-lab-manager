@@ -158,3 +158,19 @@ pub async fn get_course_progress(
         tasks,
     })
 }
+
+pub async fn start_task(
+    pool: &PgPool,
+    user_id: Uuid,
+    task_id: Uuid,
+) -> Result<CourseProgressDto, AppError> {
+    let course_id = task_progress_repo::get_course_id_by_task_id(pool, task_id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+
+    ensure_task_accessible(pool, user_id, task_id).await?;
+
+    task_progress_repo::mark_task_in_progress(pool, user_id, task_id).await?;
+
+    get_course_progress(pool, user_id, course_id).await
+}

@@ -5,7 +5,7 @@ import AppLayout from "./layouts/AppLayout";
 import Landing from "./features/auth/pages/Landing";
 import Login from "./features/auth/pages/Login";
 import Register from "./features/auth/pages/Register";
-import Dashboard from "./features/labs/pages/Dashboard";
+import Dashboard from "./features/dashboard/pages/Dashboard";
 import Machines from "./features/labs/pages/Machines";
 import CoursesPage from "./features/academy/pages/CoursesPage";
 import CoursePage from "./features/academy/pages/CoursePage";

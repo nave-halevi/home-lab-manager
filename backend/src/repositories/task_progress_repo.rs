@@ -131,3 +131,50 @@ pub async fn get_course_id_by_task_id(
     .fetch_optional(pool)
     .await
 }
+
+pub async fn mark_task_in_progress(
+    pool: &PgPool,
+    user_id: Uuid,
+    task_id: Uuid,
+) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        r#"
+        INSERT INTO user_task_progress (
+            user_id,
+            task_id,
+            status,
+            started_at,
+            completed_at
+        )
+        VALUES (
+            $1,
+            $2,
+            'IN_PROGRESS',
+            now(),
+            NULL
+        )
+        ON CONFLICT (user_id, task_id)
+        DO UPDATE SET
+            status = CASE
+                WHEN user_task_progress.status = 'COMPLETED'
+                    THEN 'COMPLETED'
+                ELSE 'IN_PROGRESS'
+            END,
+            started_at = COALESCE(
+                user_task_progress.started_at,
+                now()
+            ),
+            completed_at = CASE
+                WHEN user_task_progress.status = 'COMPLETED'
+                    THEN user_task_progress.completed_at
+                ELSE NULL
+            END
+        "#,
+        user_id,
+        task_id
+    )
+    .execute(pool)
+    .await?;
+
+    Ok(())
+}

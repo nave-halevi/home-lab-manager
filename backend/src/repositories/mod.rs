@@ -1,5 +1,6 @@
 pub mod academy_repo;
 pub mod ctf_repo;
+pub mod dashboard_repo;
 pub mod environment_repo;
 pub mod instance_repo;
 pub mod scenario_repo;
