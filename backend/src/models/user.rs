@@ -13,6 +13,7 @@ pub struct User {
     pub updated_at: DateTime<Utc>,
     pub total_score: i32,
     pub role: Role,
+    pub avatar_url: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -49,6 +50,7 @@ pub struct UserResponse {
     pub email: String,
     pub role: Role,
     pub total_score: i32,
+    pub avatar_url: Option<String>,
 }
 
 #[derive(Serialize)]

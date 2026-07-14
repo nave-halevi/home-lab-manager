@@ -9,6 +9,7 @@ import Dashboard from "./features/dashboard/pages/Dashboard";
 import Machines from "./features/labs/pages/Machines";
 import CoursesPage from "./features/academy/pages/CoursesPage";
 import CoursePage from "./features/academy/pages/CoursePage";
+import ProfilePage from "./features/profile/pages/ProfilePage";
 import RequireAuth from "./routes/RequireAuth";
 
 function App() {
@@ -29,6 +30,7 @@ function App() {
             <Route path="/academy" element={<CoursesPage />} />
             <Route path="/academy/:courseId" element={<CoursePage />} />
             <Route path="/machines" element={<Machines />} />
+            <Route path="/profile" element={<ProfilePage />} />
 
             <Route
               path="/leaderboard"

@@ -11,7 +11,7 @@ pub async fn create_user(
         r#"
         INSERT INTO users (user_name, email, password_hash, role)
         VALUES ($1, $2, $3, 'user')
-        RETURNING id, user_name, email, password_hash, role, created_at, updated_at, total_score
+        RETURNING id, user_name, email, password_hash, role, created_at, updated_at, total_score, avatar_url
         "#,
         user_name,
         email,
@@ -34,6 +34,7 @@ pub async fn create_user(
         updated_at: row.updated_at,
         total_score: row.total_score,
         role,
+        avatar_url: row.avatar_url,
     };
 
     Ok(user)
@@ -42,7 +43,7 @@ pub async fn create_user(
 pub async fn get_all_users(pool: &PgPool) -> Result<Vec<User>, sqlx::Error> {
     let rows = sqlx::query!(
         r#"
-        SELECT id, user_name, email, password_hash, role, created_at, updated_at, total_score
+        SELECT id, user_name, email, password_hash, role, created_at, updated_at, total_score, avatar_url
         FROM users
         "#
     )
@@ -66,6 +67,7 @@ pub async fn get_all_users(pool: &PgPool) -> Result<Vec<User>, sqlx::Error> {
                 updated_at: row.updated_at,
                 total_score: row.total_score,
                 role,
+                avatar_url: row.avatar_url,
             }
         })
         .collect();
@@ -76,7 +78,7 @@ pub async fn get_all_users(pool: &PgPool) -> Result<Vec<User>, sqlx::Error> {
 pub async fn get_user_by_email(pool: &PgPool, email: &str) -> Result<Option<User>, sqlx::Error> {
     let row = sqlx::query!(
         r#"
-        SELECT id, user_name, email, password_hash, role, created_at, updated_at, total_score
+        SELECT id, user_name, email, password_hash, role, created_at, updated_at, total_score, avatar_url
         FROM users
         WHERE email = $1
         "#,
@@ -101,6 +103,7 @@ pub async fn get_user_by_email(pool: &PgPool, email: &str) -> Result<Option<User
                 updated_at: row.updated_at,
                 total_score: row.total_score,
                 role,
+                avatar_url: row.avatar_url,
             })
         }
         None => None,

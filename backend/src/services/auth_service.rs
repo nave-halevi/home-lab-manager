@@ -39,6 +39,7 @@ pub async fn login(pool: &PgPool, req: LoginRequest) -> Result<LoginResponse, St
         email: user.email,
         role: user.role.clone(),
         total_score: user.total_score,
+        avatar_url: user.avatar_url,
     };
 
     let token = generate_token(&user.id.to_string(), user.role.clone())?;
