@@ -40,3 +40,15 @@ pub async fn complete_content_task_handler(
 
     Ok(Json(progress))
 }
+
+pub async fn start_task_handler(
+    State(pool): State<PgPool>,
+    Extension(claims): Extension<Claims>,
+    Path(task_id): Path<Uuid>,
+) -> Result<Json<CourseProgressDto>, AppError> {
+    let user_id = Uuid::parse_str(&claims.sub).map_err(|_| AppError::Unauthorized)?;
+
+    let progress = task_progress_service::start_task(&pool, user_id, task_id).await?;
+
+    Ok(Json(progress))
+}

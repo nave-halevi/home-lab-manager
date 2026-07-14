@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 
 import useCourse from "../hooks/useCourse";
@@ -7,6 +7,8 @@ import useCourseProgress from "../hooks/useCourseProgress";
 import CourseHeader from "../components/CourseHeader";
 import SectionSidebar from "../components/SectionSidebar";
 import CourseWorkspace from "../components/workspace/CourseWorkspace";
+
+import { startTask } from "../services/academyService";
 
 export default function CoursePage() {
   const { courseId } = useParams();
@@ -18,6 +20,10 @@ export default function CoursePage() {
 
   const [selectedTask, setSelectedTask] = useState(null);
 
+  const orderedTasks = useMemo(() => {
+    return course?.sections?.flatMap((section) => section.tasks || []) || [];
+  }, [course]);
+
   const progressByTaskId = useMemo(() => {
     return new Map(
       (progress?.tasks || []).map((taskProgress) => [
@@ -27,92 +33,131 @@ export default function CoursePage() {
     );
   }, [progress]);
 
-  const getOrderedTasks = () => {
-    return course?.sections?.flatMap((section) => section.tasks || []) || [];
-  };
-
-  const findNextAvailableTask = (currentProgress) => {
-    const orderedTasks = getOrderedTasks();
-
-    const currentProgressByTaskId = new Map(
+  const buildProgressMap = useCallback((currentProgress) => {
+    return new Map(
       (currentProgress?.tasks || []).map((taskProgress) => [
         taskProgress.task_id,
         taskProgress,
       ]),
     );
+  }, []);
 
-    return orderedTasks.find((task) => {
+  const findNextAvailableTask = useCallback(
+    (currentProgress) => {
+      const currentProgressByTaskId = buildProgressMap(currentProgress);
+
+      return orderedTasks.find((task) => {
+        const taskProgress = currentProgressByTaskId.get(task.id);
+
+        return (
+          taskProgress?.access_status === "AVAILABLE" &&
+          taskProgress?.progress_status !== "COMPLETED"
+        );
+      });
+    },
+    [buildProgressMap, orderedTasks],
+  );
+
+  const handleSelectTask = useCallback(
+    async (task, currentProgress = progress) => {
+      if (!task?.id) {
+        return;
+      }
+
+      const currentProgressByTaskId = buildProgressMap(currentProgress);
+
       const taskProgress = currentProgressByTaskId.get(task.id);
 
-      return (
-        taskProgress?.access_status === "AVAILABLE" &&
-        taskProgress?.progress_status !== "COMPLETED"
-      );
-    });
-  };
+      if (taskProgress?.access_status === "LOCKED") {
+        return;
+      }
 
-  const handleTaskCompleted = async () => {
+      setSelectedTask(task);
+
+      if (taskProgress?.progress_status !== "NOT_STARTED") {
+        return;
+      }
+
+      try {
+        await startTask(task.id);
+        await reloadProgress();
+      } catch (requestError) {
+        console.error("Failed to mark task as in progress:", requestError);
+      }
+    },
+    [buildProgressMap, progress, reloadProgress],
+  );
+
+  const handleTaskCompleted = useCallback(async () => {
     try {
       const updatedProgress = await reloadProgress();
 
       const nextTask = findNextAvailableTask(updatedProgress);
 
       if (nextTask) {
-        setSelectedTask(nextTask);
+        await handleSelectTask(nextTask, updatedProgress);
         return;
       }
 
-      const orderedTasks = getOrderedTasks();
       const lastTask = orderedTasks[orderedTasks.length - 1];
 
       if (lastTask) {
         setSelectedTask(lastTask);
       }
-    } catch (err) {
-      console.error("Failed to refresh progress after task completion:", err);
+    } catch (requestError) {
+      console.error(
+        "Failed to refresh progress after task completion:",
+        requestError,
+      );
     }
-  };
+  }, [findNextAvailableTask, handleSelectTask, orderedTasks, reloadProgress]);
 
   useEffect(() => {
-    if (!course || !progress || selectedTask) {
+    if (!course || !progress || selectedTask || orderedTasks.length === 0) {
       return;
     }
 
     const nextTask = findNextAvailableTask(progress);
 
     if (nextTask) {
-      setSelectedTask(nextTask);
+      handleSelectTask(nextTask, progress);
       return;
     }
 
-    const orderedTasks = getOrderedTasks();
     const lastTask = orderedTasks[orderedTasks.length - 1];
 
     if (lastTask) {
       setSelectedTask(lastTask);
     }
-  }, [course, progress, selectedTask]);
+  }, [
+    course,
+    progress,
+    selectedTask,
+    orderedTasks,
+    findNextAvailableTask,
+    handleSelectTask,
+  ]);
 
   if (loading || progressLoading) {
-    return <div className="p-8 text-zinc-300">Loading course...</div>;
+    return <div className="p-8 text-zinc-300">Loading course... </div>;
   }
 
   if (error) {
-    return <div className="p-8 text-red-400">{error}</div>;
+    return <div className="p-8 text-red-400">{error} </div>;
   }
 
   if (progressError) {
-    return <div className="p-8 text-red-400">{progressError}</div>;
+    return <div className="p-8 text-red-400">{progressError} </div>;
   }
 
   if (!course) {
-    return <div className="p-8 text-zinc-400">Course was not found.</div>;
+    return <div className="p-8 text-zinc-400">Course was not found. </div>;
   }
 
   return (
     <div className="flex h-full w-full flex-col px-6 py-6">
+      {" "}
       <CourseHeader course={course} />
-
       {progress && (
         <div className="mt-5 rounded-xl border border-zinc-800 bg-zinc-950/60 p-4">
           <div className="flex items-center justify-between gap-4">
@@ -149,13 +194,12 @@ export default function CoursePage() {
           </div>
         </div>
       )}
-
       <div className="mt-8 flex min-h-0 flex-1 gap-8">
         <SectionSidebar
           sections={course.sections || []}
           selectedTask={selectedTask}
           progressByTaskId={progressByTaskId}
-          onSelectTask={setSelectedTask}
+          onSelectTask={handleSelectTask}
         />
 
         <main className="min-h-0 flex-1">

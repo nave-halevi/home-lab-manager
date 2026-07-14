@@ -19,10 +19,9 @@ export default function useCourseProgress(courseId) {
 
     try {
       const data = await getCourseProgress(courseId);
-
       setProgress(data);
-
       return data;
+      
     } catch (error) {
       setProgressError(error.message || "Failed to load course progress");
 
@@ -30,7 +29,6 @@ export default function useCourseProgress(courseId) {
     } finally {
       setProgressLoading(false);
     }
-    
   }, [courseId]);
 
   useEffect(() => {
