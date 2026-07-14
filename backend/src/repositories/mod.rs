@@ -3,6 +3,7 @@ pub mod ctf_repo;
 pub mod dashboard_repo;
 pub mod environment_repo;
 pub mod instance_repo;
+pub mod profile_repo;
 pub mod scenario_repo;
 pub mod task_progress_repo;
 pub mod task_repo;

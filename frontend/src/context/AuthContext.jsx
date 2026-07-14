@@ -1,4 +1,10 @@
-import { createContext, useContext, useState, useEffect } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 import {
   login as loginRequest,
   register as registerRequest,
@@ -42,6 +48,19 @@ export function AuthProvider({ children }) {
     localStorage.removeItem("user");
   };
 
+  const updateStoredUser = useCallback((updatedUser) => {
+    setUser((currentUser) => {
+      const nextUser = {
+        ...(currentUser || {}),
+        ...updatedUser,
+      };
+
+      localStorage.setItem("user", JSON.stringify(nextUser));
+
+      return nextUser;
+    });
+  }, []);
+
   return (
     <AuthContext.Provider
       value={{
@@ -50,6 +69,7 @@ export function AuthProvider({ children }) {
         login,
         register,
         logout,
+        updateStoredUser,
       }}
     >
       {children}

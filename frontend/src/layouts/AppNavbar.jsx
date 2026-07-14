@@ -1,19 +1,17 @@
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 export default function AppNavbar() {
-  const { logout, user } = useAuth();
-  const navigate = useNavigate();
+  const { user } = useAuth();
 
   const linkClass = ({ isActive }) =>
     isActive
       ? "text-white font-medium"
       : "text-zinc-400 hover:text-white transition";
 
-  const handleLogout = () => {
-    logout();
-    navigate("/login");
-  };
+  const profileInitial = (user?.user_name || user?.email || "U")
+    .charAt(0)
+    .toUpperCase();
 
   return (
     <header className="sticky top-0 z-50 border-b border-zinc-800 bg-zinc-950/90 backdrop-blur">
@@ -47,12 +45,25 @@ export default function AppNavbar() {
         <div className="flex items-center gap-4 text-sm">
           <NavLink
             to="/profile"
-            className="text-zinc-400 hover:text-white transition"
+            aria-label="Open profile"
+            className="flex items-center gap-3 text-zinc-400 transition hover:text-white"
           >
-            {user?.email || "Profile"}
+            <span className="hidden sm:inline">{user?.email || "Profile"}</span>
+
+            <span className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-zinc-700 bg-zinc-900 text-sm font-semibold text-white">
+              {user?.avatar_url ? (
+                <img
+                  src={user.avatar_url}
+                  alt=""
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                profileInitial
+              )}
+            </span>
           </NavLink>
 
-          {user?.role === "admin" && (
+          {user?.role?.toLowerCase() === "admin" && (
             <NavLink
               to="/admin"
               className="text-red-400 hover:text-red-300 transition"
@@ -60,13 +71,6 @@ export default function AppNavbar() {
               Admin
             </NavLink>
           )}
-
-          <button
-            onClick={handleLogout}
-            className="text-red-400 hover:text-red-300 transition"
-          >
-            Logout
-          </button>
         </div>
       </div>
     </header>
