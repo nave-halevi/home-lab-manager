@@ -18,8 +18,10 @@ import AdminCoursesPage from "./features/admin/pages/AdminCoursesPage";
 import AdminCourseEditorPage from "./features/admin/pages/AdminCourseEditorPage";
 import AdminScenariosPage from "./features/admin/pages/AdminScenariosPage";
 import AdminUsersPage from "./features/admin/pages/AdminUsersPage";
+import AdminUserDetailsPage from "./features/admin/pages/AdminUserDetailsPage";
 import AdminLabsPage from "./features/admin/pages/AdminLabsPage";
 import AdminFlagsPage from "./features/admin/pages/AdminFlagsPage";
+import AdminActivityPage from "./features/admin/pages/AdminActivityPage";
 
 function App() {
   return (
@@ -51,8 +53,10 @@ function App() {
                 />
                 <Route path="scenarios" element={<AdminScenariosPage />} />
                 <Route path="users" element={<AdminUsersPage />} />
+                <Route path="users/:userId" element={<AdminUserDetailsPage />} />
                 <Route path="labs" element={<AdminLabsPage />} />
                 <Route path="flags" element={<AdminFlagsPage />} />
+                <Route path="activity" element={<AdminActivityPage />} />
               </Route>
             </Route>
 

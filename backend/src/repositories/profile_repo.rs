@@ -30,7 +30,11 @@ pub async fn get_profile_by_user_id(
             user_name,
             email,
             role,
-            total_score,
+            COALESCE((
+                SELECT SUM(earned_points)::INT
+                FROM user_task_progress
+                WHERE user_id = users.id
+            ), 0) AS total_score,
             created_at,
             updated_at,
             avatar_url
@@ -84,7 +88,11 @@ pub async fn update_profile(
             user_name,
             email,
             role,
-            total_score,
+            COALESCE((
+                SELECT SUM(earned_points)::INT
+                FROM user_task_progress
+                WHERE user_id = users.id
+            ), 0) AS total_score,
             created_at,
             updated_at,
             avatar_url
@@ -150,7 +158,11 @@ pub async fn update_avatar(
             user_name,
             email,
             role,
-            total_score,
+            COALESCE((
+                SELECT SUM(earned_points)::INT
+                FROM user_task_progress
+                WHERE user_id = users.id
+            ), 0) AS total_score,
             created_at,
             updated_at,
             avatar_url

@@ -17,4 +17,6 @@ pub struct LabStatusResponseDto {
     pub created_at: DateTime<Utc>,
     pub started_at: Option<DateTime<Utc>>,
     pub stopped_at: Option<DateTime<Utc>>,
+    pub last_activity: DateTime<Utc>,
+    pub expires_at: Option<DateTime<Utc>>,
 }

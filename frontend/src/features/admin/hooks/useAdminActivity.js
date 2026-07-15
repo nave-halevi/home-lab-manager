@@ -1,9 +1,9 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable react-hooks/set-state-in-effect */
 import { useCallback, useEffect, useState } from "react";
-import { getAdminFlags } from "../services/adminService";
+import { getAdminActivity } from "../services/adminService";
 
-export default function useAdminFlags(params = {}) {
+export default function useAdminActivity(params = {}) {
   const [items, setItems] = useState([]);
   const [meta, setMeta] = useState({ page: 1, page_size: 20, total_items: 0, total_pages: 0 });
   const [loading, setLoading] = useState(true);
@@ -13,7 +13,7 @@ export default function useAdminFlags(params = {}) {
     setLoading(true);
     setError(null);
     try {
-      const data = await getAdminFlags(params);
+      const data = await getAdminActivity(params);
       setItems(data.items || []);
       setMeta({
         page: data.page,
@@ -26,7 +26,7 @@ export default function useAdminFlags(params = {}) {
     } finally {
       setLoading(false);
     }
-  }, [params.page, params.page_size, params.search, params.scenario_id]);
+  }, [params.page, params.page_size, params.admin_user_id, params.action, params.entity_type, params.order]);
 
   useEffect(() => {
     reload();

@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use serde::Serialize;
 use uuid::Uuid;
 
@@ -9,4 +10,5 @@ pub struct CreateLabResponseDto {
     pub vm_name: String,
     pub ssh_port: Option<i32>,
     pub status: String,
+    pub expires_at: Option<DateTime<Utc>>,
 }

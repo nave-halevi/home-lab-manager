@@ -43,7 +43,13 @@ pub async fn create_user(
 pub async fn get_all_users(pool: &PgPool) -> Result<Vec<User>, sqlx::Error> {
     let rows = sqlx::query!(
         r#"
-        SELECT id, user_name, email, password_hash, role, created_at, updated_at, total_score, avatar_url
+        SELECT id, user_name, email, password_hash, role, created_at, updated_at,
+               COALESCE((
+                   SELECT SUM(earned_points)::INT
+                   FROM user_task_progress
+                   WHERE user_id = users.id
+               ), 0) AS "total_score!",
+               avatar_url
         FROM users
         "#
     )
@@ -78,7 +84,13 @@ pub async fn get_all_users(pool: &PgPool) -> Result<Vec<User>, sqlx::Error> {
 pub async fn get_user_by_email(pool: &PgPool, email: &str) -> Result<Option<User>, sqlx::Error> {
     let row = sqlx::query!(
         r#"
-        SELECT id, user_name, email, password_hash, role, created_at, updated_at, total_score, avatar_url
+        SELECT id, user_name, email, password_hash, role, created_at, updated_at,
+               COALESCE((
+                   SELECT SUM(earned_points)::INT
+                   FROM user_task_progress
+                   WHERE user_id = users.id
+               ), 0) AS "total_score!",
+               avatar_url
         FROM users
         WHERE email = $1
         "#,
@@ -110,4 +122,11 @@ pub async fn get_user_by_email(pool: &PgPool, email: &str) -> Result<Option<User
     };
 
     Ok(user)
+}
+
+pub async fn is_user_active(pool: &PgPool, user_id: uuid::Uuid) -> Result<bool, sqlx::Error> {
+    sqlx::query_scalar::<_, bool>("SELECT is_active FROM users WHERE id = $1")
+        .bind(user_id)
+        .fetch_one(pool)
+        .await
 }

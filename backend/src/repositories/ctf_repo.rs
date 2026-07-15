@@ -28,30 +28,13 @@ pub async fn get_flag(
     Ok(record.map(|r| (r.id, r.points)))
 }
 
-pub async fn submit_and_score(
-    pool: &PgPool,
-    user_id: Uuid,
-    flag_id: Uuid,
-    points: i32,
-) -> Result<(), Error> {
-    let mut tx = pool.begin().await?;
-
+pub async fn submit_and_score(pool: &PgPool, user_id: Uuid, flag_id: Uuid) -> Result<(), Error> {
     sqlx::query!(
         "INSERT INTO user_flags (user_id, flag_id) VALUES ($1, $2)",
         user_id,
         flag_id
     )
-    .execute(&mut *tx)
+    .execute(pool)
     .await?;
-
-    sqlx::query!(
-        "UPDATE users SET total_score = total_score + $1 WHERE id = $2",
-        points,
-        user_id
-    )
-    .execute(&mut *tx)
-    .await?;
-
-    tx.commit().await?;
     Ok(())
 }

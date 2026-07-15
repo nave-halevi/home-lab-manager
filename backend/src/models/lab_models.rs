@@ -18,6 +18,7 @@ pub struct CreateLabResponse {
     pub message: String,
     pub ssh_port: Option<u16>,
     pub env_id: Option<Uuid>,
+    pub expires_at: Option<chrono::DateTime<chrono::Utc>>,
 }
 
 #[derive(Debug, Deserialize)]

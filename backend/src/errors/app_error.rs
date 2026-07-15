@@ -21,6 +21,9 @@ pub enum AppError {
     #[error("Forbidden")]
     Forbidden,
 
+    #[error("Forbidden: {0}")]
+    ForbiddenMessage(String),
+
     #[error("Validation error: {0}")]
     Validation(String),
 
@@ -50,6 +53,8 @@ impl IntoResponse for AppError {
             AppError::Unauthorized => (StatusCode::UNAUTHORIZED, "Unauthorized".to_string()),
 
             AppError::Forbidden => (StatusCode::FORBIDDEN, "Forbidden".to_string()),
+
+            AppError::ForbiddenMessage(msg) => (StatusCode::FORBIDDEN, msg),
 
             AppError::Validation(msg) => (StatusCode::BAD_REQUEST, msg),
 

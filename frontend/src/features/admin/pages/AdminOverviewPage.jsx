@@ -11,6 +11,9 @@ export default function AdminOverviewPage() {
   const statistics = data.statistics;
   const cards = [
     ["Total Users", statistics.total_users],
+    ["Active Users", statistics.active_users],
+    ["Disabled Users", statistics.disabled_users],
+    ["Admin Users", statistics.admin_users],
     ["Total Courses", statistics.total_courses],
     ["Published Courses", statistics.published_courses],
     ["Total Scenarios", statistics.total_scenarios],
@@ -31,6 +34,26 @@ export default function AdminOverviewPage() {
           <AdminStatCard key={label} label={label} value={value} />
         ))}
       </div>
+      <section className="mt-8 rounded-xl border border-zinc-800 bg-zinc-900 p-5">
+        <h2 className="text-lg font-semibold">Recent Admin Activity</h2>
+        {!data.recent_activity?.length ? (
+          <p className="mt-3 text-sm text-zinc-500">No Admin activity has been recorded yet.</p>
+        ) : (
+          <div className="mt-4 space-y-3">
+            {data.recent_activity.map((item) => (
+              <div key={item.id} className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-800 pb-3 last:border-b-0 last:pb-0">
+                <div>
+                  <p className="font-medium">{item.action}</p>
+                  <p className="text-xs text-zinc-500">
+                    {item.admin_user_name || "Unknown Admin"} · {item.entity_type}
+                  </p>
+                </div>
+                <span className="text-xs text-zinc-500">{new Date(item.created_at).toLocaleString()}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
     </Page>
   );
 }

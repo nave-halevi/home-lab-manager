@@ -1,8 +1,9 @@
-use axum::Router;
 use axum::http::Method;
+use axum::{Extension, Router};
 use dotenvy::dotenv;
 use sqlx::postgres::PgPoolOptions;
 use std::env;
+use tokio::time::{Duration, interval};
 use tower_http::cors::{Any, CorsLayer};
 
 mod errors;
@@ -29,6 +30,15 @@ async fn main() {
 
     println!("✅ Successfully connected to PostgreSQL!");
 
+    let cleanup_pool = pool.clone();
+    tokio::spawn(async move {
+        let mut ticker = interval(Duration::from_secs(60));
+        loop {
+            ticker.tick().await;
+            services::instance_service::cleanup_expired_labs(&cleanup_pool).await;
+        }
+    });
+
     let cors = CorsLayer::new()
         .allow_origin(Any)
         .allow_methods([Method::GET, Method::POST, Method::PUT, Method::DELETE])
@@ -37,6 +47,7 @@ async fn main() {
     let app = Router::new()
         .nest("/api", routes::create_api_router())
         .layer(cors)
+        .layer(Extension(pool.clone()))
         .with_state(pool);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();

@@ -14,6 +14,7 @@ pub struct TaskProgressRow {
     pub section_order_index: i32,
 
     pub points: i32,
+    pub earned_points: i32,
     pub status: String,
 
     pub started_at: Option<DateTime<Utc>>,
@@ -24,23 +25,26 @@ pub async fn mark_task_completed(
     pool: &PgPool,
     user_id: Uuid,
     task_id: Uuid,
-) -> Result<(), sqlx::Error> {
-    sqlx::query!(
+) -> Result<i32, sqlx::Error> {
+    let row = sqlx::query!(
         r#"
         INSERT INTO user_task_progress (
             user_id,
             task_id,
             status,
             started_at,
-            completed_at
+            completed_at,
+            earned_points
         )
-        VALUES (
+        SELECT
             $1,
-            $2,
+            t.id,
             'COMPLETED',
             now(),
-            now()
-        )
+            now(),
+            t.points
+        FROM tasks t
+        WHERE t.id = $2
         ON CONFLICT (user_id, task_id)
         DO UPDATE SET
             status = 'COMPLETED',
@@ -51,15 +55,21 @@ pub async fn mark_task_completed(
             completed_at = COALESCE(
                 user_task_progress.completed_at,
                 now()
-            )
+            ),
+            earned_points = CASE
+                WHEN user_task_progress.status = 'COMPLETED'
+                    THEN user_task_progress.earned_points
+                ELSE EXCLUDED.earned_points
+            END
+        RETURNING earned_points
         "#,
         user_id,
         task_id
     )
-    .execute(pool)
+    .fetch_one(pool)
     .await?;
 
-    Ok(())
+    Ok(row.earned_points)
 }
 
 pub async fn get_course_progress(
@@ -81,6 +91,10 @@ pub async fn get_course_progress(
             s.order_index AS section_order_index,
 
             t.points,
+            COALESCE(
+                utp.earned_points,
+                0
+            ) AS "earned_points!",
 
             COALESCE(
                 utp.status,
@@ -144,14 +158,16 @@ pub async fn mark_task_in_progress(
             task_id,
             status,
             started_at,
-            completed_at
+            completed_at,
+            earned_points
         )
         VALUES (
             $1,
             $2,
             'IN_PROGRESS',
             now(),
-            NULL
+            NULL,
+            0
         )
         ON CONFLICT (user_id, task_id)
         DO UPDATE SET

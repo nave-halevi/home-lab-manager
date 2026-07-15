@@ -24,9 +24,7 @@ async function parseResponse(response) {
       data?.error ||
       `Request failed with status ${response.status}`;
 
-    ```
-throw new Error(message);
-```;
+    throw new Error(message);
   }
 
   return data;
@@ -70,6 +68,15 @@ export async function getActiveLab(scenarioId) {
   }
 
   const response = await fetch(`${BASE_URL}/active/${scenarioId}`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  });
+
+  return parseResponse(response);
+}
+
+export async function getAnyActiveLab() {
+  const response = await fetch(`${BASE_URL}/active`, {
     method: "GET",
     headers: getAuthHeaders(),
   });
@@ -122,6 +129,7 @@ export function getTerminalUrl(environmentId) {
   }
 
   const websocketOrigin = API_ORIGIN.replace(/^http/, "ws");
+  const token = encodeURIComponent(localStorage.getItem("token") || "");
 
-  return `${websocketOrigin}/api/lab/terminal/${environmentId}`;
+  return `${websocketOrigin}/api/lab/terminal/${environmentId}?token=${token}`;
 }

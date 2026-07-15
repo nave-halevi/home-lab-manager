@@ -1,15 +1,18 @@
-use axum::{extract::Request, http::StatusCode, middleware::Next, response::Response};
+use axum::{extract::Request, middleware::Next, response::Response};
 
-use crate::models::user::{Claims, Role};
+use crate::{
+    errors::AppError,
+    models::user::{Claims, Role},
+};
 
-pub async fn admin_middleware(req: Request, next: Next) -> Result<Response, StatusCode> {
+pub async fn admin_middleware(req: Request, next: Next) -> Result<Response, AppError> {
     let claims = req
         .extensions()
         .get::<Claims>()
-        .ok_or(StatusCode::UNAUTHORIZED)?;
+        .ok_or(AppError::Unauthorized)?;
 
     if claims.role != Role::Admin {
-        return Err(StatusCode::FORBIDDEN);
+        return Err(AppError::Forbidden);
     }
 
     Ok(next.run(req).await)

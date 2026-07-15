@@ -18,6 +18,7 @@ pub fn router() -> Router<PgPool> {
             "/status/:environment_id",
             get(lab_handler::handle_get_lab_status),
         )
+        .route("/active", get(lab_handler::handle_get_any_active_lab))
         .route(
             "/active/:scenario_id",
             get(lab_handler::handle_get_active_lab),
