@@ -29,7 +29,8 @@ fn admin_routes() -> Router<PgPool> {
         // =======================
         .route(
             "/courses",
-            post(academy_admin_handler::create_course_handler),
+            get(academy_admin_handler::get_courses_handler)
+                .post(academy_admin_handler::create_course_handler),
         )
         .route(
             "/courses/:id",

@@ -1,10 +1,9 @@
 use sqlx::PgPool;
-use std::collections::HashMap;
 use uuid::Uuid;
 
 use crate::errors::AppError;
 
-use crate::repositories::academy_repo;
+use crate::repositories::{academy_repo, scenario_repo};
 
 use crate::models::entities::{course::Course, section::Section, task::Task};
 
@@ -18,7 +17,36 @@ use crate::models::dto::{
 // Courses
 // =====================================================
 
+fn map_course_write_error(error: sqlx::Error) -> AppError {
+    match error {
+        sqlx::Error::RowNotFound => AppError::NotFound,
+        sqlx::Error::Database(database_error) if database_error.is_unique_violation() => {
+            AppError::Validation("A course with this slug already exists.".to_string())
+        }
+        error => AppError::Database(error),
+    }
+}
+
+fn map_order_write_error(error: sqlx::Error, item: &str) -> AppError {
+    match error {
+        sqlx::Error::RowNotFound => AppError::NotFound,
+        sqlx::Error::Database(database_error) if database_error.is_unique_violation() => {
+            AppError::Validation(format!("Another {item} already uses this order index."))
+        }
+        sqlx::Error::Database(database_error) if database_error.is_foreign_key_violation() => {
+            AppError::Validation(format!(
+                "The selected parent for this {item} does not exist."
+            ))
+        }
+        error => AppError::Database(error),
+    }
+}
+
 pub async fn get_courses(pool: &PgPool) -> Result<Vec<Course>, AppError> {
+    Ok(academy_repo::get_published_courses(pool).await?)
+}
+
+pub async fn get_all_courses(pool: &PgPool) -> Result<Vec<Course>, AppError> {
     Ok(academy_repo::get_courses(pool).await?)
 }
 
@@ -31,76 +59,99 @@ pub async fn get_course_by_id(pool: &PgPool, id: Uuid) -> Result<Course, AppErro
 pub async fn get_course_full(pool: &PgPool, course_id: Uuid) -> Result<CourseFullDto, AppError> {
     let course = get_course_by_id(pool, course_id).await?;
 
-    let rows = academy_repo::get_course_full_rows(pool, course_id).await?;
+    let section_entities = academy_repo::get_sections_by_course(pool, course_id).await?;
 
-    let mut sections: HashMap<Uuid, SectionDto> = HashMap::new();
+    let mut sections = Vec::with_capacity(section_entities.len());
 
-    for row in rows {
-        let section = sections.entry(row.section_id).or_insert(SectionDto {
-            id: row.section_id,
-            title: row.section_title,
-            order_index: row.section_order,
-            tasks: vec![],
+    for section in section_entities {
+        let task_entities = academy_repo::get_tasks_by_section(pool, section.id).await?;
+
+        let tasks = task_entities
+            .into_iter()
+            .map(|task| TaskDto {
+                id: task.id,
+                section_id: task.section_id,
+                scenario_id: task.scenario_id,
+                title: task.title,
+                content: task.content,
+                task_type: task.task_type,
+                order_index: task.order_index,
+                points: task.points,
+            })
+            .collect();
+
+        sections.push(SectionDto {
+            id: section.id,
+            title: section.title,
+            order_index: section.order_index,
+            tasks,
         });
-
-        if let Some(task_id) = row.task_id {
-            section.tasks.push(TaskDto {
-                id: task_id,
-                section_id: row.task_section_id.unwrap(),
-                scenario_id: row.scenario_id,
-                title: row.task_title.unwrap(),
-                content: row.task_content.unwrap(),
-                task_type: row.task_type.unwrap(),
-                order_index: row.task_order.unwrap(),
-                points: row.points.unwrap(),
-            });
-        }
     }
 
-    let mut sections: Vec<SectionDto> = sections.into_values().collect();
-
-    sections.sort_by_key(|s| s.order_index);
+    sections.sort_by_key(|section| section.order_index);
 
     Ok(CourseFullDto {
         id: course.id,
-
         title: course.title,
-
         slug: course.slug,
-
         description: course.description,
-
         difficulty: course.difficulty,
-
         is_published: course.is_published,
-
         created_at: course.created_at,
-
         sections,
     })
 }
 
 pub async fn create_course(pool: &PgPool, req: CreateCourseRequest) -> Result<Course, AppError> {
-    let course = academy_repo::create_course(
+    let title = req.title.trim();
+    let slug = req.slug.trim().to_lowercase();
+
+    if title.is_empty() {
+        return Err(AppError::Validation(
+            "Course title is required.".to_string(),
+        ));
+    }
+
+    if slug.is_empty() {
+        return Err(AppError::Validation("Course slug is required.".to_string()));
+    }
+
+    match academy_repo::create_course(
         pool,
-        &req.title,
-        &req.slug,
+        title,
+        &slug,
         req.description.as_deref(),
         req.difficulty.as_deref(),
     )
-    .await?;
+    .await
+    {
+        Ok(course) => Ok(course),
 
-    Ok(course)
+        Err(sqlx::Error::Database(database_error)) if database_error.is_unique_violation() => Err(
+            AppError::Validation("A course with this slug already exists.".to_string()),
+        ),
+
+        Err(error) => Err(AppError::Database(error)),
+    }
 }
 
 pub async fn update_course(
     pool: &PgPool,
     id: Uuid,
-    req: UpdateCourseRequest,
+    mut req: UpdateCourseRequest,
 ) -> Result<Course, AppError> {
-    let course = academy_repo::update_course(pool, id, req).await?;
+    req.title = req.title.trim().to_string();
+    req.slug = req.slug.trim().to_lowercase();
 
-    Ok(course)
+    if req.title.is_empty() || req.slug.is_empty() {
+        return Err(AppError::Validation(
+            "Course title and slug are required.".to_string(),
+        ));
+    }
+
+    academy_repo::update_course(pool, id, req)
+        .await
+        .map_err(map_course_write_error)
 }
 
 pub async fn delete_course(pool: &PgPool, id: Uuid) -> Result<(), AppError> {
@@ -127,26 +178,47 @@ pub async fn get_sections_by_course(
 }
 
 pub async fn create_section(pool: &PgPool, req: CreateSectionRequest) -> Result<Section, AppError> {
-    let section = academy_repo::create_section(
+    let title = req.title.trim();
+    if title.is_empty() || req.order_index < 0 {
+        return Err(AppError::Validation(
+            "Section title is required and order index cannot be negative.".to_string(),
+        ));
+    }
+
+    academy_repo::create_section(
         pool,
         req.course_id,
-        &req.title,
+        title,
         req.description.as_deref(),
         req.order_index,
     )
-    .await?;
-
-    Ok(section)
+    .await
+    .map_err(|error| map_order_write_error(error, "section"))
 }
 
 pub async fn update_section(
     pool: &PgPool,
     id: Uuid,
-    req: UpdateSectionRequest,
+    mut req: UpdateSectionRequest,
 ) -> Result<Section, AppError> {
-    let section = academy_repo::update_section(pool, id, req).await?;
+    if let Some(title) = &req.title {
+        let normalized = title.trim();
+        if normalized.is_empty() {
+            return Err(AppError::Validation(
+                "Section title is required.".to_string(),
+            ));
+        }
+        req.title = Some(normalized.to_string());
+    }
+    if req.order_index.is_some_and(|order| order < 0) {
+        return Err(AppError::Validation(
+            "Section order index cannot be negative.".to_string(),
+        ));
+    }
 
-    Ok(section)
+    academy_repo::update_section(pool, id, req)
+        .await
+        .map_err(|error| map_order_write_error(error, "section"))
 }
 
 pub async fn delete_section(pool: &PgPool, id: Uuid) -> Result<(), AppError> {
@@ -170,15 +242,90 @@ pub async fn get_tasks_by_section(pool: &PgPool, section_id: Uuid) -> Result<Vec
 }
 
 pub async fn create_task(pool: &PgPool, req: CreateTaskRequest) -> Result<Task, AppError> {
-    Ok(academy_repo::create_task(pool, req).await?)
+    if req.title.trim().is_empty()
+        || req.content.trim().is_empty()
+        || req.order_index < 0
+        || req.points.is_some_and(|points| points < 0)
+    {
+        return Err(AppError::Validation(
+            "Task title and content are required; order and points cannot be negative.".to_string(),
+        ));
+    }
+    if req.task_type == "LAB" {
+        let scenario_id = req.scenario_id.ok_or_else(|| {
+            AppError::Validation("LAB tasks must reference a scenario.".to_string())
+        })?;
+        let scenario = scenario_repo::find_scenario_by_id(pool, scenario_id)
+            .await?
+            .ok_or_else(|| AppError::Validation("Selected scenario does not exist.".to_string()))?;
+
+        if !scenario.is_active {
+            return Err(AppError::Validation(
+                "Inactive scenarios cannot be assigned to a new lab task.".to_string(),
+            ));
+        }
+    }
+
+    academy_repo::create_task(pool, req)
+        .await
+        .map_err(|error| map_order_write_error(error, "task"))
 }
 
 pub async fn update_task(
     pool: &PgPool,
     id: Uuid,
-    req: UpdateTaskRequest,
+    mut req: UpdateTaskRequest,
 ) -> Result<Task, AppError> {
-    Ok(academy_repo::update_task(pool, id, req).await?)
+    if req
+        .title
+        .as_deref()
+        .is_some_and(|title| title.trim().is_empty())
+        || req
+            .content
+            .as_deref()
+            .is_some_and(|content| content.trim().is_empty())
+        || req.order_index.is_some_and(|order| order < 0)
+        || req.points.is_some_and(|points| points < 0)
+    {
+        return Err(AppError::Validation(
+            "Task title and content cannot be empty; order and points cannot be negative."
+                .to_string(),
+        ));
+    }
+    let current = get_task_by_id(pool, id).await?;
+    let task_type = req.task_type.as_deref().unwrap_or(&current.task_type);
+    let scenario_id = req.scenario_id.unwrap_or(current.scenario_id);
+
+    if task_type != "LAB" {
+        req.scenario_id = Some(None);
+    } else {
+        let scenario_id = scenario_id.ok_or_else(|| {
+            AppError::Validation("LAB tasks must reference a scenario.".to_string())
+        })?;
+        let keeps_existing_inactive_scenario = current.task_type == "LAB"
+            && current.scenario_id == Some(scenario_id)
+            && req
+                .scenario_id
+                .is_none_or(|requested| requested == Some(scenario_id));
+
+        if !keeps_existing_inactive_scenario {
+            let scenario = scenario_repo::find_scenario_by_id(pool, scenario_id)
+                .await?
+                .ok_or_else(|| {
+                    AppError::Validation("Selected scenario does not exist.".to_string())
+                })?;
+
+            if !scenario.is_active {
+                return Err(AppError::Validation(
+                    "Inactive scenarios cannot be assigned to a lab task.".to_string(),
+                ));
+            }
+        }
+    }
+
+    academy_repo::update_task(pool, id, req)
+        .await
+        .map_err(|error| map_order_write_error(error, "task"))
 }
 
 pub async fn delete_task(pool: &PgPool, id: Uuid) -> Result<(), AppError> {

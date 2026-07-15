@@ -43,7 +43,7 @@ pub struct UpdateTaskRequest {
     pub title: Option<String>,
     pub content: Option<String>,
     pub task_type: Option<String>,
-    pub scenario_id: Option<Uuid>,
+    pub scenario_id: Option<Option<Uuid>>,
     pub order_index: Option<i32>,
     pub points: Option<i32>,
 }

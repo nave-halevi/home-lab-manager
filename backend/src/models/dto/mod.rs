@@ -1,3 +1,4 @@
+pub mod admin;
 pub mod course;
 pub mod dashboard;
 pub mod lab;

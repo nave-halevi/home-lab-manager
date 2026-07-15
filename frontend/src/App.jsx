@@ -11,6 +11,15 @@ import CoursesPage from "./features/academy/pages/CoursesPage";
 import CoursePage from "./features/academy/pages/CoursePage";
 import ProfilePage from "./features/profile/pages/ProfilePage";
 import RequireAuth from "./routes/RequireAuth";
+import RequireAdmin from "./routes/RequireAdmin";
+import AdminLayout from "./features/admin/components/AdminLayout";
+import AdminOverviewPage from "./features/admin/pages/AdminOverviewPage";
+import AdminCoursesPage from "./features/admin/pages/AdminCoursesPage";
+import AdminCourseEditorPage from "./features/admin/pages/AdminCourseEditorPage";
+import AdminScenariosPage from "./features/admin/pages/AdminScenariosPage";
+import AdminUsersPage from "./features/admin/pages/AdminUsersPage";
+import AdminLabsPage from "./features/admin/pages/AdminLabsPage";
+import AdminFlagsPage from "./features/admin/pages/AdminFlagsPage";
 
 function App() {
   return (
@@ -31,6 +40,21 @@ function App() {
             <Route path="/academy/:courseId" element={<CoursePage />} />
             <Route path="/machines" element={<Machines />} />
             <Route path="/profile" element={<ProfilePage />} />
+
+            <Route element={<RequireAdmin />}>
+              <Route path="/admin" element={<AdminLayout />}>
+                <Route index element={<AdminOverviewPage />} />
+                <Route path="academy" element={<AdminCoursesPage />} />
+                <Route
+                  path="academy/courses/:courseId"
+                  element={<AdminCourseEditorPage />}
+                />
+                <Route path="scenarios" element={<AdminScenariosPage />} />
+                <Route path="users" element={<AdminUsersPage />} />
+                <Route path="labs" element={<AdminLabsPage />} />
+                <Route path="flags" element={<AdminFlagsPage />} />
+              </Route>
+            </Route>
 
             <Route
               path="/leaderboard"
