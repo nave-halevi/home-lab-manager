@@ -69,6 +69,27 @@ pub async fn get_courses(pool: &PgPool) -> Result<Vec<Course>, sqlx::Error> {
     .await
 }
 
+pub async fn get_published_courses(pool: &PgPool) -> Result<Vec<Course>, sqlx::Error> {
+    sqlx::query_as!(
+        Course,
+        r#"
+        SELECT
+            id,
+            title,
+            slug,
+            description,
+            difficulty,
+            is_published,
+            created_at
+        FROM courses
+        WHERE is_published = true
+        ORDER BY created_at DESC
+        "#
+    )
+    .fetch_all(pool)
+    .await
+}
+
 pub async fn get_course_by_id(pool: &PgPool, id: Uuid) -> Result<Option<Course>, sqlx::Error> {
     sqlx::query_as!(
         Course,
@@ -143,61 +164,6 @@ pub async fn delete_course(pool: &PgPool, id: Uuid) -> Result<(), sqlx::Error> {
     .await?;
 
     Ok(())
-}
-
-// =====================================================
-// Course Full
-// =====================================================
-
-#[derive(Debug)]
-pub struct CourseFullRow {
-    pub section_id: Uuid,
-    pub section_title: String,
-    pub section_order: i32,
-
-    pub task_id: Option<Uuid>,
-    pub task_section_id: Option<Uuid>,
-    pub task_title: Option<String>,
-    pub task_content: Option<String>,
-    pub task_type: Option<String>,
-    pub task_order: Option<i32>,
-    pub scenario_id: Option<Uuid>,
-    pub points: Option<i32>,
-}
-
-pub async fn get_course_full_rows(
-    pool: &PgPool,
-    course_id: Uuid,
-) -> Result<Vec<CourseFullRow>, sqlx::Error> {
-    sqlx::query_as!(
-        CourseFullRow,
-        r#"
-        SELECT
-                s.id as section_id,
-                s.title as section_title,
-                s.order_index as section_order,
-                t.id as task_id,
-                t.section_id as task_section_id,
-                t.title as task_title,
-                t.content as task_content,
-                t.task_type,
-                t.order_index as task_order,
-                t.points,
-                t.scenario_id
-
-            FROM sections s
-
-            LEFT JOIN tasks t
-            ON t.section_id = s.id
-
-            WHERE s.course_id = $1
-
-            ORDER BY s.order_index, t.order_index
-        "#,
-        course_id
-    )
-    .fetch_all(pool)
-    .await
 }
 
 // =====================================================
@@ -446,11 +412,11 @@ pub async fn update_task(
 
             task_type = COALESCE($4,task_type),
 
-            scenario_id = COALESCE($5,scenario_id),
+            scenario_id = CASE WHEN $5 THEN $6 ELSE scenario_id END,
 
-            order_index = COALESCE($6,order_index),
+            order_index = COALESCE($7,order_index),
 
-            points = COALESCE($7,points)
+            points = COALESCE($8,points)
 
 
         WHERE id = $1
@@ -471,7 +437,8 @@ pub async fn update_task(
         req.title,
         req.content,
         req.task_type,
-        req.scenario_id,
+        req.scenario_id.is_some(),
+        req.scenario_id.flatten(),
         req.order_index,
         req.points
     )

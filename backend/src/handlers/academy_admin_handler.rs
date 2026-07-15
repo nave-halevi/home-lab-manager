@@ -20,6 +20,15 @@ use crate::{
 // Courses
 // =======================
 
+pub async fn get_courses_handler(
+    State(pool): State<PgPool>,
+) -> Result<Json<Vec<CourseResponseDto>>, AppError> {
+    let courses = academy_service::get_all_courses(&pool).await?;
+    Ok(Json(
+        courses.into_iter().map(CourseResponseDto::from).collect(),
+    ))
+}
+
 pub async fn create_course_handler(
     State(pool): State<PgPool>,
     Json(req): Json<CreateCourseRequest>,

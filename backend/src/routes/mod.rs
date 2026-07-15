@@ -11,6 +11,7 @@ use sqlx::PgPool;
 
 pub fn create_api_router() -> Router<PgPool> {
     Router::new()
+        .nest("/admin", admin_routes::router())
         .nest("/auth", auth::router())
         .nest("/users", user_routes::router())
         .nest("/lab", lab_routes::router())
@@ -19,3 +20,4 @@ pub fn create_api_router() -> Router<PgPool> {
         .nest("/dashboard", dashboard_routes::router())
         .nest("/profile", profile_routes::router())
 }
+pub mod admin_routes;
