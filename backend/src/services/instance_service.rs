@@ -1,3 +1,4 @@
+use chrono::{Duration, Utc};
 use sqlx::PgPool;
 use tokio::task;
 use uuid::Uuid;
@@ -14,11 +15,49 @@ use crate::{
     utils::{network, virtualbox_manager},
 };
 
+const DEFAULT_LAB_IDLE_TIMEOUT_MINUTES: i64 = 20;
+const EXPIRED_LAB_CLEANUP_LIMIT: i64 = 10;
+
+fn lab_idle_timeout_minutes() -> i64 {
+    std::env::var("LAB_IDLE_TIMEOUT_MINUTES")
+        .ok()
+        .and_then(|value| value.parse::<i64>().ok())
+        .filter(|minutes| *minutes > 0)
+        .unwrap_or(DEFAULT_LAB_IDLE_TIMEOUT_MINUTES)
+}
+
+fn next_expiration() -> chrono::DateTime<Utc> {
+    Utc::now() + Duration::minutes(lab_idle_timeout_minutes())
+}
+
+fn is_expired(environment: &crate::models::entities::Environment) -> bool {
+    environment
+        .expires_at
+        .is_some_and(|expires_at| expires_at <= Utc::now())
+}
+
 pub async fn create_user_lab(
     pool: &PgPool,
     user_id: Uuid,
     scenario_id: Uuid,
 ) -> Result<CreateLabResponseDto, String> {
+    if let Some(active_environment) = environment_repo::find_any_active_environment(pool, user_id)
+        .await
+        .map_err(|error| format!("Failed to check active environments: {error}"))?
+    {
+        if is_expired(&active_environment) {
+            delete_user_lab(pool, active_environment.user_id, active_environment.id).await?;
+        } else {
+            if active_environment.scenario_id == scenario_id {
+                return Err("You already have an active environment for this scenario".to_string());
+            }
+
+            return Err(
+                "You already have an active lab. Stop it before starting another one.".to_string(),
+            );
+        }
+    }
+
     let scenario = scenario_repo::find_active_scenario_by_id(pool, scenario_id)
         .await
         .map_err(|error| format!("Failed to retrieve scenario: {error}"))?
@@ -32,17 +71,23 @@ pub async fn create_user_lab(
         return Err("You already have an active environment for this scenario".to_string());
     }
 
-    let environment = environment_repo::create_environment(pool, user_id, scenario_id)
-        .await
-        .map_err(|error| {
-            if let sqlx::Error::Database(database_error) = &error {
-                if database_error.is_unique_violation() {
-                    return "You already have an active environment for this scenario".to_string();
-                }
+    let environment = environment_repo::create_environment(
+        pool,
+        user_id,
+        scenario_id,
+        next_expiration(),
+    )
+    .await
+    .map_err(|error| {
+        if let sqlx::Error::Database(database_error) = &error {
+            if database_error.is_unique_violation() {
+                return "You already have an active lab. Stop it before starting another one."
+                    .to_string();
             }
+        }
 
-            format!("Failed to create environment: {error}")
-        })?;
+        format!("Failed to create environment: {error}")
+    })?;
 
     let vm_name = format!("lab-{}-{}", user_id, Uuid::new_v4().as_simple());
 
@@ -140,6 +185,7 @@ pub async fn create_user_lab(
         vm_name,
         ssh_port: running_instance.ssh_port,
         status: EnvironmentStatus::Running.as_str().to_string(),
+        expires_at: environment.expires_at,
     })
 }
 
@@ -237,6 +283,9 @@ pub async fn verify_and_submit_flag(
         return Err("The environment is not currently running".to_string());
     }
 
+    let _ =
+        environment_repo::touch_environment_activity(pool, environment.id, next_expiration()).await;
+
     let belongs_to_scenario =
         task_repo::task_belongs_to_scenario(pool, task_id, environment.scenario_id)
             .await
@@ -272,7 +321,7 @@ pub async fn verify_and_submit_flag(
         .await
         .map_err(|error| format!("Failed to verify flag: {error}"))?;
 
-    let (flag_id, points) = match flag_details {
+    let (flag_id, _flag_points) = match flag_details {
         Some(details) => details,
 
         None => {
@@ -280,15 +329,15 @@ pub async fn verify_and_submit_flag(
         }
     };
 
-    match ctf_repo::submit_and_score(pool, user_id, flag_id, points).await {
+    match ctf_repo::submit_and_score(pool, user_id, flag_id).await {
         Ok(_) => {
-            task_progress_repo::mark_task_completed(pool, user_id, task_id)
+            let earned_points = task_progress_repo::mark_task_completed(pool, user_id, task_id)
                 .await
                 .map_err(|error| {
                     format!("Flag was accepted, but task progress could not be updated: {error}")
                 })?;
 
-            Ok(format!("✅ Correct! You earned {} points.", points))
+            Ok(format!("✅ Correct! You earned {} points.", earned_points))
         }
 
         Err(sqlx::Error::Database(database_error)) if database_error.is_unique_violation() => {
@@ -335,6 +384,15 @@ pub async fn get_lab_status(
         .map_err(|error| format!("Failed to retrieve environment: {}", error))?
         .ok_or_else(|| "Environment not found".to_string())?;
 
+    if matches!(
+        environment.status.as_str(),
+        "Building" | "Running" | "Stopping"
+    ) && is_expired(&environment)
+    {
+        delete_user_lab(pool, environment.user_id, environment.id).await?;
+        return Err("Environment expired".to_string());
+    }
+
     let instance = instance_repo::find_by_environment_id(pool, environment.id)
         .await
         .map_err(|error| format!("Failed to retrieve instance: {}", error))?;
@@ -357,6 +415,8 @@ pub async fn get_lab_status(
         created_at: environment.created_at,
         started_at: environment.started_at,
         stopped_at: environment.stopped_at,
+        last_activity: environment.last_activity,
+        expires_at: environment.expires_at,
     })
 }
 
@@ -372,6 +432,11 @@ pub async fn get_active_lab(
     let Some(environment) = environment else {
         return Ok(None);
     };
+
+    if is_expired(&environment) {
+        delete_user_lab(pool, environment.user_id, environment.id).await?;
+        return Ok(None);
+    }
 
     let instance = instance_repo::find_by_environment_id(pool, environment.id)
         .await
@@ -395,5 +460,84 @@ pub async fn get_active_lab(
         created_at: environment.created_at,
         started_at: environment.started_at,
         stopped_at: environment.stopped_at,
+        last_activity: environment.last_activity,
+        expires_at: environment.expires_at,
     }))
+}
+
+pub async fn get_any_active_lab(
+    pool: &PgPool,
+    user_id: Uuid,
+) -> Result<Option<LabStatusResponseDto>, String> {
+    let Some(environment) = environment_repo::find_any_active_environment(pool, user_id)
+        .await
+        .map_err(|error| format!("Failed to retrieve active environment: {}", error))?
+    else {
+        return Ok(None);
+    };
+
+    if is_expired(&environment) {
+        delete_user_lab(pool, environment.user_id, environment.id).await?;
+        return Ok(None);
+    }
+
+    let instance = instance_repo::find_by_environment_id(pool, environment.id)
+        .await
+        .map_err(|error| format!("Failed to retrieve active instance: {}", error))?;
+
+    Ok(Some(LabStatusResponseDto {
+        environment_id: environment.id,
+        scenario_id: environment.scenario_id,
+        environment_status: environment.status,
+        instance_id: instance.as_ref().map(|instance| instance.id),
+        vm_name: instance.as_ref().map(|instance| instance.vm_name.clone()),
+        ssh_port: instance.as_ref().and_then(|instance| instance.ssh_port),
+        instance_status: instance.as_ref().map(|instance| instance.status.clone()),
+        is_entry_point: instance.as_ref().map(|instance| instance.is_entry_point),
+        created_at: environment.created_at,
+        started_at: environment.started_at,
+        stopped_at: environment.stopped_at,
+        last_activity: environment.last_activity,
+        expires_at: environment.expires_at,
+    }))
+}
+
+pub async fn touch_lab_activity(pool: &PgPool, environment_id: Uuid) -> Result<(), String> {
+    let environment = environment_repo::find_environment_by_id(pool, environment_id)
+        .await
+        .map_err(|error| format!("Failed to retrieve environment: {error}"))?
+        .ok_or_else(|| "Environment not found".to_string())?;
+
+    if is_expired(&environment) {
+        delete_user_lab(pool, environment.user_id, environment.id).await?;
+        return Err("Environment expired".to_string());
+    }
+
+    environment_repo::touch_environment_activity(pool, environment_id, next_expiration())
+        .await
+        .map_err(|error| format!("Failed to refresh lab activity: {error}"))?;
+
+    Ok(())
+}
+
+pub async fn cleanup_expired_labs(pool: &PgPool) {
+    let expired_environments =
+        match environment_repo::find_expired_active_environments(pool, EXPIRED_LAB_CLEANUP_LIMIT)
+            .await
+        {
+            Ok(environments) => environments,
+            Err(error) => {
+                eprintln!("[Lab Cleanup] Failed to find expired labs: {error}");
+                return;
+            }
+        };
+
+    for environment in expired_environments {
+        if let Err(error) = delete_user_lab(pool, environment.user_id, environment.id).await {
+            eprintln!(
+                "[Lab Cleanup] Failed to cleanup expired lab '{}': {}",
+                environment.id, error
+            );
+        }
+    }
 }

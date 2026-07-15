@@ -15,6 +15,7 @@ function mapActiveLabResponse(data) {
     status: data.environment_status,
     instanceStatus: data.instance_status || null,
     vmName: data.vm_name || null,
+    expiresAt: data.expires_at || null,
   };
 }
 
@@ -70,6 +71,7 @@ export const useLabs = () => {
         status: "Running",
         instanceStatus: "Running",
         vmName: data.vm_name || null,
+        expiresAt: data.expires_at || null,
       };
 
       setActiveLab(createdLab);
@@ -99,8 +101,10 @@ export const useLabs = () => {
     }
   }, []);
 
+  const activeLabEnvId = activeLab?.envId;
+
   const handleDeleteLab = useCallback(async () => {
-    if (!activeLab?.envId) {
+    if (!activeLabEnvId) {
       return false;
     }
 
@@ -108,7 +112,7 @@ export const useLabs = () => {
     setError(null);
 
     try {
-      await deleteLab(activeLab.envId);
+      await deleteLab(activeLabEnvId);
 
       setActiveLab(null);
 
@@ -120,7 +124,7 @@ export const useLabs = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [activeLab?.envId]);
+  }, [activeLabEnvId]);
 
   const clearLabError = useCallback(() => {
     setError(null);

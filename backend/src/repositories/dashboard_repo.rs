@@ -34,7 +34,11 @@ pub async fn get_dashboard_user(
         r#"
         SELECT
             user_name,
-            total_score
+            COALESCE((
+                SELECT SUM(earned_points)::INT
+                FROM user_task_progress
+                WHERE user_id = users.id
+            ), 0) AS "total_score!"
         FROM users
         WHERE id = $1
         "#,

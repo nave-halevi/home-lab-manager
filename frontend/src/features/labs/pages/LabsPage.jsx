@@ -1,12 +1,9 @@
-import React from "react";
 import { useLabs } from "../hooks/useLabs";
 import CreateLabButton from "../components/CreateLabButton";
 import LabWorkspace from "../components/LabWorkspace";
 
 const LabsPage = () => {
   const { activeLab, isLoading, error, handleCreateLab, handleDeleteLab } = useLabs();
-
-  console.log("Current activeLab state:", activeLab);
 
   if (activeLab) {
     return <LabWorkspace activeLab={activeLab} onDeleteLab={handleDeleteLab} />;

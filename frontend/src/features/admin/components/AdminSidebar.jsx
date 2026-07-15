@@ -4,6 +4,7 @@ const items = [
   ["Overview", "/admin"], ["Academy", "/admin/academy"],
   ["Scenarios", "/admin/scenarios"], ["Users", "/admin/users"],
   ["Labs", "/admin/labs"], ["Flags", "/admin/flags"],
+  ["Activity", "/admin/activity"],
 ];
 
 export default function AdminSidebar() {

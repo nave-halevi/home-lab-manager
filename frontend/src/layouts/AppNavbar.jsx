@@ -1,8 +1,14 @@
 import { NavLink } from "react-router-dom";
+/* eslint-disable react-hooks/set-state-in-effect */
+import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
+import { deleteLab, getAnyActiveLab } from "../features/labs/services/labService";
 
 export default function AppNavbar() {
   const { user } = useAuth();
+  const [activeLab, setActiveLab] = useState(null);
+  const [now, setNow] = useState(0);
+  const [isStopping, setIsStopping] = useState(false);
 
   const linkClass = ({ isActive }) =>
     isActive
@@ -12,6 +18,71 @@ export default function AppNavbar() {
   const profileInitial = (user?.user_name || user?.email || "U")
     .charAt(0)
     .toUpperCase();
+
+  const expiresAtMs = activeLab?.expires_at
+    ? new Date(activeLab.expires_at).getTime()
+    : null;
+  const remainingMs = expiresAtMs ? expiresAtMs - now : null;
+  const totalSeconds = remainingMs && remainingMs > 0 ? Math.ceil(remainingMs / 1000) : 0;
+  const remainingLabel =
+    remainingMs === null
+      ? ""
+      : remainingMs <= 0
+        ? "expiring"
+        : `${Math.floor(totalSeconds / 60)}:${String(totalSeconds % 60).padStart(2, "0")}`;
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadActiveLab = async () => {
+      if (!localStorage.getItem("token")) {
+        setActiveLab(null);
+        return;
+      }
+
+      try {
+        const lab = await getAnyActiveLab();
+        if (!cancelled) setActiveLab(lab);
+      } catch {
+        if (!cancelled) setActiveLab(null);
+      }
+    };
+
+    setNow(Date.now());
+    loadActiveLab();
+    const refresh = window.setInterval(loadActiveLab, 60_000);
+    const timer = window.setInterval(() => setNow(Date.now()), 1_000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(refresh);
+      window.clearInterval(timer);
+    };
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (remainingMs !== null && remainingMs <= 0) {
+      setActiveLab(null);
+      getAnyActiveLab()
+        .then((lab) => {
+          if (lab?.expires_at && new Date(lab.expires_at).getTime() > Date.now()) {
+            setActiveLab(lab);
+          }
+        })
+        .catch(() => setActiveLab(null));
+    }
+  }, [remainingMs]);
+
+  const stopActiveLab = async () => {
+    if (!activeLab?.environment_id) return;
+    setIsStopping(true);
+    try {
+      await deleteLab(activeLab.environment_id);
+      setActiveLab(null);
+    } finally {
+      setIsStopping(false);
+    }
+  };
 
   return (
     <header className="sticky top-0 z-50 border-b border-zinc-800 bg-zinc-950/90 backdrop-blur">
@@ -43,6 +114,26 @@ export default function AppNavbar() {
 
         {/* Right - User section */}
         <div className="flex items-center gap-4 text-sm">
+          {activeLab?.environment_status && (
+            <div
+              className={`hidden items-center gap-2 rounded-lg border px-3 py-1.5 md:flex ${
+                remainingMs !== null && remainingMs <= 120_000
+                  ? "border-red-500/50 text-red-300"
+                  : "border-emerald-500/40 text-emerald-300"
+              }`}
+            >
+              <span>Lab Running</span>
+              <span className="font-mono text-xs">{remainingLabel}</span>
+              <button
+                onClick={stopActiveLab}
+                disabled={isStopping}
+                className="text-xs text-zinc-300 hover:text-white disabled:opacity-50"
+              >
+                {isStopping ? "Stopping..." : "Stop Lab"}
+              </button>
+            </div>
+          )}
+
           <NavLink
             to="/profile"
             aria-label="Open profile"

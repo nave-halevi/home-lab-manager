@@ -14,6 +14,9 @@ const TerminalWrapper = ({ activeLab }) => {
       return undefined;
     }
 
+    let isDisposed = false;
+    let connectionFailed = false;
+
     const terminal = new Terminal({
       cursorBlink: true,
       fontFamily: "Courier New, monospace",
@@ -33,55 +36,71 @@ const TerminalWrapper = ({ activeLab }) => {
     fitAddon.fit();
     terminal.focus();
 
-    terminal.writeln(
-      "\x1b[33mConnecting to the lab machine...\x1b[0m",
-    );
+    terminal.writeln("\x1b[33mConnecting to the lab machine...\x1b[0m");
 
-    const websocket = new WebSocket(
-      getTerminalUrl(activeLab.envId),
-    );
+    const websocket = new WebSocket(getTerminalUrl(activeLab.envId));
 
     websocket.onopen = () => {
-      terminal.writeln(
-        "\x1b[32mTerminal connected successfully.\x1b[0m",
-      );
+      if (isDisposed) {
+        return;
+      }
+
+      terminal.writeln("\x1b[32mTerminal connected successfully.\x1b[0m");
     };
 
     websocket.onmessage = (event) => {
+      if (isDisposed) {
+        return;
+      }
+
       terminal.write(event.data);
     };
 
     websocket.onerror = () => {
-      terminal.writeln(
-        "\r\n\x1b[31mTerminal connection error.\x1b[0m",
-      );
+      if (isDisposed || connectionFailed) {
+        return;
+      }
+
+      connectionFailed = true;
+
+      terminal.writeln("\r\n\x1b[31mTerminal connection error.\x1b[0m");
     };
 
     websocket.onclose = () => {
-      terminal.writeln(
-        "\r\n\x1b[33mTerminal disconnected.\x1b[0m",
-      );
+      if (isDisposed) {
+        return;
+      }
+
+      if (!connectionFailed) {
+        terminal.writeln("\r\n\x1b[33mTerminal disconnected.\x1b[0m");
+      }
     };
 
     const inputListener = terminal.onData((data) => {
-      if (websocket.readyState === WebSocket.OPEN) {
+      if (!isDisposed && websocket.readyState === WebSocket.OPEN) {
         websocket.send(data);
       }
     });
 
     const handleResize = () => {
-      fitAddon.fit();
+      if (!isDisposed) {
+        fitAddon.fit();
+      }
     };
 
     window.addEventListener("resize", handleResize);
 
     return () => {
-      window.removeEventListener(
-        "resize",
-        handleResize,
-      );
+      isDisposed = true;
+
+      window.removeEventListener("resize", handleResize);
 
       inputListener.dispose();
+
+      websocket.onopen = null;
+      websocket.onmessage = null;
+      websocket.onerror = null;
+      websocket.onclose = null;
 
       if (
         websocket.readyState === WebSocket.OPEN ||
@@ -92,7 +111,7 @@ const TerminalWrapper = ({ activeLab }) => {
 
       terminal.dispose();
     };
-  }, [activeLab]);
+  }, [activeLab?.envId]);
 
   return (
     <div

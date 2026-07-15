@@ -1,54 +1,89 @@
 use axum::{
     extract::{
-        Path, State,
+        Path, Query, State,
         ws::{Message, WebSocket, WebSocketUpgrade},
     },
     http::StatusCode,
     response::{IntoResponse, Response},
 };
 use futures_util::{sink::SinkExt, stream::StreamExt};
+use serde::Deserialize;
 use sqlx::PgPool;
-use tokio::sync::mpsc;
+use tokio::{
+    sync::mpsc,
+    time::{Duration, Instant},
+};
 use uuid::Uuid;
 
 use crate::{
     models::status::{EnvironmentStatus, InstanceStatus},
-    repositories::{environment_repo, instance_repo},
+    repositories::{environment_repo, instance_repo, user_repo},
+    services::{auth_service, instance_service},
     utils::ssh_manager,
 };
+
+#[derive(Debug, Deserialize)]
+pub struct TerminalQuery {
+    token: Option<String>,
+}
 
 pub async fn ws_terminal_handler(
     State(pool): State<PgPool>,
     ws: WebSocketUpgrade,
     Path(environment_id): Path<Uuid>,
+    Query(query): Query<TerminalQuery>,
 ) -> Response {
     println!(
         "[Terminal] WebSocket connection requested for environment '{}'.",
         environment_id
     );
 
-    let environment = match environment_repo::find_environment_by_id(&pool, environment_id).await {
-        Ok(Some(environment)) => environment,
-
-        Ok(None) => {
-            eprintln!("[Terminal] Environment '{}' was not found.", environment_id);
-
-            return (StatusCode::NOT_FOUND, "Environment not found").into_response();
-        }
-
-        Err(error) => {
-            eprintln!(
-                "[Terminal] Failed to retrieve environment '{}': {}",
-                environment_id, error
-            );
-
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "Failed to retrieve environment",
-            )
-                .into_response();
-        }
+    let token = match query.token {
+        Some(token) if !token.trim().is_empty() => token,
+        _ => return (StatusCode::UNAUTHORIZED, "Unauthorized").into_response(),
     };
+
+    let claims = match auth_service::verify_token(&token) {
+        Ok(claims) => claims,
+        Err(_) => return (StatusCode::UNAUTHORIZED, "Unauthorized").into_response(),
+    };
+
+    let user_id = match claims.sub.parse::<Uuid>() {
+        Ok(user_id) => user_id,
+        Err(_) => return (StatusCode::UNAUTHORIZED, "Unauthorized").into_response(),
+    };
+
+    match user_repo::is_user_active(&pool, user_id).await {
+        Ok(true) => {}
+        Ok(false) => {
+            return (StatusCode::FORBIDDEN, "This account has been disabled").into_response();
+        }
+        Err(_) => return (StatusCode::UNAUTHORIZED, "Unauthorized").into_response(),
+    }
+
+    let environment =
+        match environment_repo::find_user_environment_by_id(&pool, environment_id, user_id).await {
+            Ok(Some(environment)) => environment,
+
+            Ok(None) => {
+                eprintln!("[Terminal] Environment '{}' was not found.", environment_id);
+
+                return (StatusCode::NOT_FOUND, "Environment not found").into_response();
+            }
+
+            Err(error) => {
+                eprintln!(
+                    "[Terminal] Failed to retrieve environment '{}': {}",
+                    environment_id, error
+                );
+
+                return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "Failed to retrieve environment",
+                )
+                    .into_response();
+            }
+        };
 
     if environment.status != EnvironmentStatus::Running.as_str() {
         eprintln!(
@@ -131,10 +166,12 @@ pub async fn ws_terminal_handler(
         environment_id, instance.id, ssh_port
     );
 
-    ws.on_upgrade(move |socket| handle_socket(socket, environment_id, ssh_port))
+    let socket_pool = pool.clone();
+
+    ws.on_upgrade(move |socket| handle_socket(socket, socket_pool, environment_id, ssh_port))
 }
 
-async fn handle_socket(socket: WebSocket, environment_id: Uuid, ssh_port: u16) {
+async fn handle_socket(socket: WebSocket, pool: PgPool, environment_id: Uuid, ssh_port: u16) {
     println!(
         "[Terminal] WebSocket upgraded for environment '{}'.",
         environment_id
@@ -184,6 +221,10 @@ async fn handle_socket(socket: WebSocket, environment_id: Uuid, ssh_port: u16) {
     });
 
     let mut websocket_receive_task = tokio::spawn(async move {
+        const ACTIVITY_REFRESH_INTERVAL: Duration = Duration::from_secs(60);
+
+        let mut last_activity_refresh: Option<Instant> = None;
+
         while let Some(message_result) = websocket_receiver.next().await {
             let message = match message_result {
                 Ok(message) => message,
@@ -201,6 +242,23 @@ async fn handle_socket(socket: WebSocket, environment_id: Uuid, ssh_port: u16) {
                         eprintln!("[Terminal] SSH input channel was closed.");
 
                         break;
+                    }
+
+                    let should_refresh_activity = last_activity_refresh
+                        .map(|last_refresh| last_refresh.elapsed() >= ACTIVITY_REFRESH_INTERVAL)
+                        .unwrap_or(true);
+
+                    if should_refresh_activity {
+                        last_activity_refresh = Some(Instant::now());
+
+                        if let Err(error) =
+                            instance_service::touch_lab_activity(&pool, environment_id).await
+                        {
+                            eprintln!(
+                                "[Terminal] Failed to refresh activity for environment '{}': {}",
+                                environment_id, error
+                            );
+                        }
                     }
                 }
 

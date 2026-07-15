@@ -101,11 +101,7 @@ pub async fn get_course_progress(
 
     let total_points = rows.iter().map(|row| i64::from(row.points)).sum();
 
-    let earned_points = rows
-        .iter()
-        .filter(|row| row.status == "COMPLETED")
-        .map(|row| i64::from(row.points))
-        .sum();
+    let earned_points = rows.iter().map(|row| i64::from(row.earned_points)).sum();
 
     let progress_percentage = if total_tasks == 0 {
         0.0

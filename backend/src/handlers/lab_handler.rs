@@ -37,6 +37,7 @@ pub async fn handle_create_lab(
                     message: "Unauthorized".to_string(),
                     ssh_port: None,
                     env_id: None,
+                    expires_at: None,
                 }),
             );
         }
@@ -49,18 +50,26 @@ pub async fn handle_create_lab(
                 message: "The lab was set up and is running successfully!".to_string(),
                 ssh_port: lab.ssh_port.and_then(|port| u16::try_from(port).ok()),
                 env_id: Some(lab.environment_id),
+                expires_at: lab.expires_at,
             }),
         ),
 
         Err(error) => {
             eprintln!("[ERROR] Failed to create lab in handler: {}", error);
+            let status =
+                if error.starts_with("You already") || error == "Scenario not found or inactive" {
+                    StatusCode::BAD_REQUEST
+                } else {
+                    StatusCode::INTERNAL_SERVER_ERROR
+                };
 
             (
-                StatusCode::INTERNAL_SERVER_ERROR,
+                status,
                 Json(CreateLabResponse {
                     message: error,
                     ssh_port: None,
                     env_id: None,
+                    expires_at: None,
                 }),
             )
         }
@@ -95,9 +104,14 @@ pub async fn handle_delete_lab(
 
         Err(error) => {
             eprintln!("[ERROR] Failed to delete lab in handler: {}", error);
+            let status = if error == "Environment not found" {
+                StatusCode::NOT_FOUND
+            } else {
+                StatusCode::INTERNAL_SERVER_ERROR
+            };
 
             (
-                StatusCode::INTERNAL_SERVER_ERROR,
+                status,
                 Json(DeleteLabResponse {
                     message: format!("Failed to delete laboratory: {}", error),
                 }),
@@ -186,6 +200,29 @@ pub async fn handle_get_active_lab(
     };
 
     match instance_service::get_active_lab(&pool, user_id, scenario_id).await {
+        Ok(response) => (StatusCode::OK, Json(response)),
+
+        Err(error) => {
+            eprintln!("[ERROR] Failed to retrieve active lab: {}", error);
+
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(None))
+        }
+    }
+}
+
+pub async fn handle_get_any_active_lab(
+    State(pool): State<PgPool>,
+    Extension(claims): Extension<Claims>,
+) -> (StatusCode, Json<Option<LabStatusResponseDto>>) {
+    let user_id = match user_id_from_claims(&claims) {
+        Ok(user_id) => user_id,
+
+        Err(status) => {
+            return (status, Json(None));
+        }
+    };
+
+    match instance_service::get_any_active_lab(&pool, user_id).await {
         Ok(response) => (StatusCode::OK, Json(response)),
 
         Err(error) => {

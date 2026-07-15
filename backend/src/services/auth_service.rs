@@ -33,6 +33,14 @@ pub async fn login(pool: &PgPool, req: LoginRequest) -> Result<LoginResponse, St
         return Err("Invalid credentials".to_string());
     }
 
+    let is_active = user_repo::is_user_active(pool, user.id)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    if !is_active {
+        return Err("This account has been disabled.".to_string());
+    }
+
     let user_response = UserResponse {
         id: user.id,
         user_name: user.user_name,
